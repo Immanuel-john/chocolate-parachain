@@ -1,0 +1,9 @@
+image:
+  file: .github/dockerfiles/Dockerfile.gitpod-base
+tasks:
+  - init: cargo build
+    command: cargo watch -x run
+  - name: Relay
+    command: bash ./scripts/start-relay.sh
+
+
