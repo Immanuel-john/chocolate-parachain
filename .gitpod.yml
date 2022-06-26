@@ -1,0 +1,10 @@
+image:
+  file: .github/dockerfiles/Dockerfile.gitpod-base
+tasks:
+  - name: Collator 1
+    init: cargo build
+    command: ./target/debug/parachain-collator --dev
+  - name: Relay
+    command: ~/relay/polkadot/target/release/polkadot --dev
+
+
