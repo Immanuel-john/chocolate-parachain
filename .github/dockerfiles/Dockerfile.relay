@@ -1,0 +1,12 @@
+FROM gitpod/workspace-full
+
+ARG USER=gitpod
+ARG GROUP=gitpod
+USER ${USER}:${GROUP}
+
+ARG POLKADOT_BIN=./bins/polkadot
+
+COPY ${POLKADOT_BIN} /usr/local/bin
+EXPOSE 30333 9933 9944
+
+ENTRYPOINT ["/usr/local/bin/polkadot"]

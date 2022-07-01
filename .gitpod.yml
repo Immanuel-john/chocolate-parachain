@@ -1,10 +1,15 @@
 image:
   file: .github/dockerfiles/Dockerfile.gitpod-base
+  context: .
 tasks:
-  - name: Collator 1
-    init: cargo build
+  - name: Init bins
+    init: docker build --pull --rm -f ".github/dockerfiles/Dockerfile.collator" -t chocnet/parachain-collator "."
     command: ./target/debug/parachain-collator
   - name: Relay
-    command: ~/relay/polkadot/target/release/polkadot --tmp --chain rococo-local
+    init: |
+      sh ./scripts/prep-bins.sh 
+      docker build --pull --rm -f ".github/dockerfiles/Dockerfile.relay" -t chocnet/polkadot-debug "."
+      rm -r bins
+
 
 
