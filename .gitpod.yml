@@ -3,13 +3,18 @@ image:
   context: .
 tasks:
   - name: Init bins
-    init: docker build --pull --rm -f ".github/dockerfiles/Dockerfile.collator" -t chocnet/parachain-collator "."
+    init: | 
+      docker build --pull --rm -f ".github/dockerfiles/Dockerfile.collator" -t chocnet/parachain-collator "." &&
+      gp sync-done collator
     command: ./target/debug/parachain-collator
   - name: Relay
     init: |
       sh ./scripts/prep-bins.sh 
       docker build --pull --rm -f ".github/dockerfiles/Dockerfile.relay" -t chocnet/polkadot-debug "."
       rm -r bins
-
+      gp sync-done relay
+  - name: Test Net
+    init:  gp sync-await collator && gp sync-await relay 
+    command: zombienet spawn zombienet/config.toml -p native
 
 

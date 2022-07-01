@@ -9,7 +9,13 @@ RUN . $HOME/.cargo/env
 RUN rustup toolchain install nightly --allow-downgrade --profile minimal --component cargo
 RUN rustup target add wasm32-unknown-unknown --toolchain nightly
 # Rustup and cargo should be available
-
+# TODO: Validate bins
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+    sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
+    rm kubectl
+RUN wget https://github.com/paritytech/zombienet/releases/download/v1.2.46/zombienet-linux -O zombienet && \
+    sudo install -o root -g root -m 0755 zombienet /usr/local/bin/zombienet && \
+    rm zombienet
 # Change to machine user/group
 ARG USER=gitpod
 ARG GROUP=gitpod
