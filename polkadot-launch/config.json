@@ -1,6 +1,6 @@
 {
 	"relaychain": {
-		"bin": "../../polkadot/target/release/polkadot",
+		"bin": "/home/gitpod/relay/polkadot/target/release/polkadot",
 		"chain": "rococo-local",
 		"nodes": [
 			{
@@ -17,7 +17,7 @@
 	},
 	"parachains": [
 		{
-			"bin": "../target/release/parachain-collator",
+			"bin": "../target/debug/parachain-collator",
 			"id": "200",
 			"balance": "1000000000000000000000",
 			"nodes": [

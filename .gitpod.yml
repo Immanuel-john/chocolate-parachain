@@ -3,8 +3,8 @@ image:
 tasks:
   - name: Collator 1
     init: cargo build
-    command: ./target/debug/parachain-collator --dev
+    command: ./target/debug/parachain-collator
   - name: Relay
-    command: ~/relay/polkadot/target/release/polkadot --dev
+    command: ~/relay/polkadot/target/release/polkadot --tmp --chain rococo-local
 
 
