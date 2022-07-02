@@ -14,9 +14,9 @@ chain = "rococo-local"
 
 [[parachains]]
 id = 100
-addToGenesis = false
 
   [parachains.collator]
   name = "collator01"
   image = "chocnet/parachain-collator:latest"
-  command = "./target/debug/parachain-collator"
+  command = "./target/release/parachain-collator"
+  args = ["-lparachain=debug"]

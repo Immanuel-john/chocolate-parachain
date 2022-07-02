@@ -37,8 +37,8 @@ Secret Key URI `//Alce` is account:
 
 ### Generate chain spec:
 
-./target/release/polkadot build-spec  --chain rococo-local  > ./rococo-local.json
-./target/release/polkadot build-spec  --chain rococo-local  --raw > ./rococo-local-raw.json
+./target/release/polkadot build-spec  --chain rococo-local --disable-default-bootnode > ./rococo-local.json
+./target/release/polkadot build-spec  --chain ./rococo-local.json --disable-default-bootnode --raw > ./rococo-local-raw.json
 
 ### Alice
 
@@ -52,7 +52,7 @@ Secret Key URI `//Alce` is account:
 --ws-port 9944
 
 ```
-12D3KooWF2oFXQNxTdpRqKKhcUgbPzhNusTXWGTmLFfRqpcviyk5
+12D3KooWDDyLVA12TTjdFR8cpFE6dPD4uYYqxMT4GMrXSNdiVswK
 
 ### Bob
 
@@ -62,10 +62,33 @@ Secret Key URI `//Alce` is account:
 --validator \
 --base-path /tmp/relay-bob \
 --chain ./rococo-local-raw.json \
---bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWF2oFXQNxTdpRqKKhcUgbPzhNusTXWGTmLFfRqpcviyk5 \
+--bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWDDyLVA12TTjdFR8cpFE6dPD4uYYqxMT4GMrXSNdiVswK \
 --port 30334 \
 --ws-port 9945
 
+### Parachains
+
+```
+./target/release/parachain-collator \
+--alice \
+--collator \
+--force-authoring \
+--chain rococo-local-parachain-2000-raw.json \
+--base-path /tmp/parachain/alice \
+--port 40333 \
+--ws-port 8844 \
+-- \
+--execution wasm \
+--chain ~/relay/polkadot/rococo-local-raw.json \
+--port 30343 \
+--ws-port 9977
+```
+```
+   ./target/release/parachain-collator build-spec --disable-default-bootnode > rococo-local-parachain-plain.json
+   ./target/release/parachain-collator build-spec --chain rococo-local-parachain-plain.json --raw --disable-default-bootnode > rococo-local-parachain-2000-raw.json
+   ./target/release/parachain-collator export-genesis-wasm --chain rococo-local-parachain-2000-raw.json > para-2000-wasm
+   ./target/release/parachain-collator export-genesis-state --chain rococo-local-parachain-2000-raw.json > para-2000-genesis
+```
 
 ### Init:
 ```
@@ -80,3 +103,4 @@ Secret Key URI `//Alce` is account:
 --port 30334 \
 --ws-port 9945
 ```
+
