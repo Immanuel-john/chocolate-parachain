@@ -2,19 +2,18 @@ image:
   file: .github/dockerfiles/Dockerfile.gitpod-base
   context: .
 tasks:
-  - name: Init bins
-    init: | 
-      docker build --pull --rm -f ".github/dockerfiles/Dockerfile.collator" -t chocnet/parachain-collator "." &&
-      gp sync-done collator
-    command: ./target/debug/parachain-collator
-  - name: Relay
-    init: |
-      sh ./scripts/prep-bins.sh 
-      docker build --pull --rm -f ".github/dockerfiles/Dockerfile.relay" -t chocnet/polkadot-debug "."
-      rm -r bins
-      gp sync-done relay
-  - name: Test Net
-    init:  gp sync-await collator && gp sync-await relay 
-    command: zombienet spawn zombienet/config.toml -p native
+  - name: Collator
+    init: bash ./scripts/prep-collator.sh main && gp sync-await relay
+    command: ./scripts/start-collator.sh
+  - name: Relay Alice 
+    init: bash ./scripts/prep-relay.sh
+    command: bash ./scripts/start-relay.sh
+  - name: Relay Bob
+    # Wait for alice
+    init: gp sync-await relay
+    command: bash ./scripts/start-relay.sh
+  # - name: Test Net
+  #   init:  gp sync-await collator && gp sync-await relay 
+  #   command: zombienet spawn zombienet/config.toml -p native
 
 
