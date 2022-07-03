@@ -20,7 +20,7 @@ function bob {
     ./target/release/polkadot \
     --bob \
     --validator \
-    --base-path /tmp/relay-bob \
+    --base-path /tmp/relay/bob \
     --chain ./rococo-local-raw.json \
     --port 30334 \
     --ws-port 9945 \
