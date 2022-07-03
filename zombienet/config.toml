@@ -13,7 +13,7 @@ chain = "rococo-local"
   name = "bob"
 
 [[parachains]]
-id = 100
+id = 2000
 
   [parachains.collator]
   name = "collator01"
