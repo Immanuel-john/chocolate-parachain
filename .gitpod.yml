@@ -7,11 +7,11 @@ tasks:
     command: ./scripts/start-collator.sh
   - name: Relay Alice 
     init: bash ./scripts/prep-relay.sh
-    command: bash ./scripts/start-relay.sh
+    command: bash ./scripts/start-relay.sh alice
   - name: Relay Bob
     # Wait for alice
     init: gp sync-await relay
-    command: bash ./scripts/start-relay.sh
+    command: bash ./scripts/start-relay.sh bob
   # - name: Test Net
   #   init:  gp sync-await collator && gp sync-await relay 
   #   command: zombienet spawn zombienet/config.toml -p native
