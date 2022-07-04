@@ -4,7 +4,7 @@ image:
 tasks:
   - name: Collator
     init: bash ./scripts/prep-collator.sh main && gp sync-await relay
-    command: ./scripts/start-collator.sh
+    command: bash ./scripts/start-collator.sh
   - name: Relay Alice 
     init: bash ./scripts/prep-relay.sh main
     command: bash ./scripts/start-relay.sh alice
@@ -19,3 +19,8 @@ tasks:
 github:
   prebuilds:
     development: true
+ports:
+  - port: 8844
+    visibility: public
+  - port: 9944
+    visibility: public
