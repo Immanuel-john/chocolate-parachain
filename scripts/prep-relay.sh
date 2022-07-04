@@ -3,9 +3,9 @@
 # Zombienet: Build relay image
 function makeBins {
     mkdir bins
-    cp ~/relay/polkadot/target/release/polkadot .github
+    cp ~/relay/polkadot/target/release/polkadot bins/
     docker build --pull --rm -f ".github/dockerfiles/Dockerfile.relay" -t chocnet/polkadot-debug "."
-    rm .github/polkadot
+    rm -r bins
     gp sync-done relay
 }
 # Setup files for local
