@@ -10,10 +10,10 @@ function makeBins {
 }
 # Setup files for local
 function buildSpec {
-    cd ~/relay/polkadot
+    RELAY_BIN=~/relay/polkadot/target/release/polkadot
 
-    ./target/release/polkadot build-spec  --chain rococo-local --disable-default-bootnode > ./rococo-local.json
-    ./target/release/polkadot build-spec  --chain ./rococo-local.json --disable-default-bootnode --raw > ./rococo-local-raw.json
+    $RELAY_BIN build-spec  --chain rococo-local --disable-default-bootnode > ch_spec/rococo-local.json
+    $RELAY_BIN build-spec  --chain ch_spec/rococo-local.json --disable-default-bootnode --raw > ch_spec/rococo-local-raw.json
 
 }
 

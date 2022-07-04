@@ -16,4 +16,6 @@ tasks:
   #   init:  gp sync-await collator && gp sync-await relay 
   #   command: zombienet spawn zombienet/config.toml -p native
 
-
+github:
+  prebuilds:
+    development: true
