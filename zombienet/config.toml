@@ -18,5 +18,5 @@ id = 2000
   [parachains.collator]
   name = "collator01"
   image = "chocnet/parachain-collator:latest"
-  command = "./target/release/parachain-collator"
+  command = "./target/debug/parachain-collator"
   args = ["-lparachain=debug"]

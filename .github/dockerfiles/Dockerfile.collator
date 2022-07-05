@@ -7,7 +7,7 @@ USER ${USER}:${GROUP}
 
 EXPOSE 30333 9933 9944
 
-ARG COLLATOR_BIN=./target/release/parachain-collator
+ARG COLLATOR_BIN=./target/debug/parachain-collator
 
 COPY ${COLLATOR_BIN} /usr/local/bin
 
