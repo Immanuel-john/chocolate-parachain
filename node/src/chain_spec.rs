@@ -1,5 +1,5 @@
 use cumulus_primitives_core::ParaId;
-use parachain_template_runtime::{AccountId, AuraId, Signature, EXISTENTIAL_DEPOSIT};
+use parachain_template_runtime::{AccountId, AuraId, Signature, EXISTENTIAL_DEPOSIT, TokensConfig, CurrencyId};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
@@ -119,7 +119,7 @@ pub fn development_config() -> ChainSpec {
 pub fn local_testnet_config() -> ChainSpec {
 	// Give your base currency a unit name and decimal places
 	let mut properties = sc_chain_spec::Properties::new();
-	properties.insert("tokenSymbol".into(), "UNIT".into());
+	properties.insert("tokenSymbol".into(), "CHOC".into());
 	properties.insert("tokenDecimals".into(), 12.into());
 	properties.insert("ss58Format".into(), 42.into());
 
@@ -216,6 +216,18 @@ fn testnet_genesis(
 		parachain_system: Default::default(),
 		polkadot_xcm: parachain_template_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
+		},
+
+		tokens: TokensConfig {
+			balances: endowed_accounts
+			.iter()
+			.flat_map(|x| {
+				vec![
+					(x.clone(), CurrencyId::DOT, 10u128.pow(16)),
+					(x.clone(), CurrencyId::BTC, 10u128.pow(16)),
+				]
+			})
+			.collect(),
 		},
 	}
 }

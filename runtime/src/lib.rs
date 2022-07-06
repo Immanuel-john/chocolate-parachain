@@ -9,6 +9,12 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 pub mod xcm_config;
 
+/// Asset config options. As used on litentry. Will Revisit for xcm
+pub mod asset_config;
+
+use asset_config::DustRemovalWhitelist;
+use codec::{Decode, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -18,7 +24,6 @@ use sp_runtime::{
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiSignature,
 };
-
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -38,8 +43,11 @@ use frame_system::{
 	EnsureRoot,
 };
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-pub use sp_runtime::{MultiAddress, Perbill, Permill};
+pub use sp_runtime::{MultiAddress, Perbill, Permill, RuntimeDebug};
 use xcm_config::{XcmConfig, XcmOriginToTransactDispatchOrigin};
+
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -48,6 +56,10 @@ pub use sp_runtime::BuildStorage;
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
+
+// Orml imports
+use orml_traits::parameter_type_with_key;
+use orml_currencies::BasicCurrencyAdapter;
 
 // XCM Imports
 use xcm::latest::prelude::BodyId;
@@ -143,6 +155,20 @@ impl WeightToFeePolynomial for WeightToFee {
 		}]
 	}
 }
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug,TypeInfo, MaxEncodedLen, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum CurrencyId {
+	Native,
+	DOT,
+	KSM,
+	BTC,
+}
+
+pub type Amount = i128;
+
+/// Identifier for a named reserve in orml tokens
+pub type ReserveIdentifier = [u8; 8];
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -456,6 +482,45 @@ impl pallet_template::Config for Runtime {
 	type Event = Event;
 }
 
+
+impl orml_tokens::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type Amount = Amount;
+	type CurrencyId = CurrencyId;
+	type WeightInfo = ();
+	type ExistentialDeposits = ExistentialDeposits;
+	type OnDust = ();
+	type OnNewTokenAccount = ();
+	type OnKilledTokenAccount = ();
+	// Shared with balances.
+	type MaxLocks =  MaxLocks;
+	type MaxReserves =  MaxReserves;
+	type ReserveIdentifier = ReserveIdentifier;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
+}
+
+
+parameter_type_with_key! {
+	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+		match _currency_id { 
+			CurrencyId::Native => 1000,
+			_ => 2
+		}
+	};
+}
+
+parameter_types! {
+	pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
+}
+
+impl orml_currencies::Config for Runtime {
+	type MultiCurrency = Tokens;
+	type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -490,6 +555,10 @@ construct_runtime!(
 
 		// Template
 		TemplatePallet: pallet_template::{Pallet, Call, Storage, Event<T>}  = 40,
+
+		// Orml
+		Currencies: orml_currencies::{Pallet, Call} = 41,
+		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 42,
 	}
 );
 

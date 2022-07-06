@@ -25,6 +25,12 @@ smallvec = "1.6.1"
 # Local
 pallet-template = { path = "../pallets/template", default-features = false }
 
+# ORML
+
+orml-currencies = {git = "https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
+orml-tokens = { git="https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
+orml-traits = { git="https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
+
 # Substrate
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true, branch = "polkadot-v0.9.24" }
 frame-executive = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
@@ -125,6 +131,9 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
+	'orml-currencies/std',
+    'orml-tokens/std',
+    'orml-traits/std',
 ]
 
 runtime-benchmarks = [
