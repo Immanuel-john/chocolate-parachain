@@ -5,7 +5,7 @@ function prepBins {
     cargo build --release
     find target/release -type f ! -name parachain-collator -exec rm {} +
 
-    docker build --pull --rm -f ".github/dockerfiles/Dockerfile.collator" -t chocnet/parachain-collator "." &&
+    docker build --pull --rm -f ".github/dockerfiles/Dockerfile.collator" -t chocnet/parachain-collator "."
 }
 
 # Export chain spec, etc to ch_spec dir.
