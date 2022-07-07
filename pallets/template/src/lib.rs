@@ -121,13 +121,15 @@ pub mod pallet {
 		/// UnReserves some amount of generic assets for the origin and transfers it to some other account. In choc, this is same account.
 		/// Pure unreserve could also work. Just showing that this is possible.
 		#[pallet::weight(10_000)]
-		pub fn test_unres_to (origin: OriginFor<T>, currency_id: CurrencyIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+		pub fn test_unres_to (origin: OriginFor<T>, currency_id: CurrencyIdOf<T>,to: T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			let to = who.clone();
 
 			// A transaction can either succeed and commit, or fail and rollback. This helps avoid prelim. checks. Tradeoffs?
 			with_transaction_result(|| {
 				let remainder = T::Currency::repatriate_reserved(currency_id,&who, &to, amount, BalanceStatus::Free)?;
+				
+				// Never use this check with the same account, else transaction will fail with remainder balance returned.
+				// Use unreserve instead
 				ensure!(remainder.is_zero(),Error::<T>::InsufficientBalance);
 
 				Ok(().into())
