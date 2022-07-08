@@ -228,6 +228,40 @@ fn testnet_genesis(
 				]
 			})
 			.collect(),
+			
+		},
+		// this isn't dynamic as we do not know the data passed.
+		chocolate_module: parachain_template_runtime::ChocolateModuleConfig {
+			init_projects: {
+				let ps_req = Reason::PassedRequirements;
+				// use a static list for accounts
+				vec![
+					(Status::Accepted, ps_req.clone()),
+					(Status::Rejected, Reason::Malicious),
+					(Status::Accepted, ps_req.clone()),
+					(Status::Accepted, ps_req.clone()),
+					(Status::Proposed, ps_req.clone()),
+					(Status::Accepted, ps_req.clone()),
+					(Status::Accepted, ps_req.clone()),
+					(Status::Accepted, ps_req.clone()),
+				]
+			},
+			init_users: {
+				vec![
+					get_account_id_from_seed::<sr25519::Public>("Alice"),
+					get_account_id_from_seed::<sr25519::Public>("Bob"),
+					get_account_id_from_seed::<sr25519::Public>("Charlie"),
+					get_account_id_from_seed::<sr25519::Public>("Dave"),
+					get_account_id_from_seed::<sr25519::Public>("Eve"),
+					get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+					get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+					get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+				]
+			},
 		},
 	}
 }

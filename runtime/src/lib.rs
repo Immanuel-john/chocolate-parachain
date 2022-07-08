@@ -223,6 +223,7 @@ pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
 
 // Unit = the base number of indivisible units for balances
+pub const HECTOUNIT: Balance =  100 * UNIT;
 pub const UNIT: Balance = 1_000_000_000_000;
 pub const MILLIUNIT: Balance = 1_000_000_000;
 pub const MICROUNIT: Balance = 1_000_000;
@@ -482,6 +483,26 @@ impl pallet_template::Config for Runtime {
 	type Event = Event;
 	type Currency  = Currencies;
 }
+parameter_types! {
+	pub const RewardCap: Balance = 50 * HECTOUNIT;
+	pub const UserCollateral: Balance = 10 * HECTOUNIT;
+	pub const StringLimit: u32 =  1_000_000_000_000;
+}
+/// Configure the pallet-chocolate in pallets/chocolate.
+impl pallet_chocolate::Config for Runtime {
+	type Event = Event;
+	type ApprovedOrigin = EnsureOneOf<
+		AccountId,
+		EnsureRoot<AccountId>,
+		pallet_collective::EnsureProportionAtLeast<_3, _5, AccountId, CouncilCollective>,
+	>;
+	type Currency = Balances;
+	type TreasuryOutlet = Treasury;
+	type RewardCap = RewardCap;
+	type UsersOutlet = UsersModule;
+	type UserCollateral = UserCollateral;
+	type StringLimit =  StringLimit;
+}
 
 
 impl orml_tokens::Config for Runtime {
@@ -554,8 +575,9 @@ construct_runtime!(
 		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 
-		// Template
+		// Chocolate
 		TemplatePallet: pallet_template::{Pallet, Call, Storage, Event<T>}  = 40,
+		ChocolateModule: pallet_chocolate::{Pallet, Call, Config<T>, Storage, Event<T>},
 
 		// Orml
 		Currencies: orml_currencies::{Pallet, Call} = 41,
@@ -576,6 +598,7 @@ mod benches {
 		[pallet_timestamp, Timestamp]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
+		[pallet_chocolate, ChocolateModule]
 	);
 }
 
