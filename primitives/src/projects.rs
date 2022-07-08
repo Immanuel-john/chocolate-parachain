@@ -26,6 +26,8 @@ where
 	pub project_id: ProjectID,
 	/// A snapshot of the user's rank at the time of review
 	pub point_snapshot: u32,
+	/// Score of a review
+	pub review_score: u8
 }
 
 /// The metadata of a project.
@@ -142,10 +144,14 @@ where
 	pub proposal_status: ProposalStatus<StringLen>,
 	/// A reward value for the project ---------_switch to idea of named reserve hash - (default: Reward).
 	pub reward: Balance,
-	/// A sum of all the scores of reviews proposed to the project. Saturate when u32::MAX.
+	/// A sum of all the points of users who wrote a review for the project. Saturate when u32::MAX.
 	pub total_user_scores: u32,
+	/// The total review scores for a project
+	pub total_review_score: u64,
+	/// The number of reviews submitted
+	pub number_of_reviews: u32
 }
-// ------------------------------------------------------------^edit
+
 impl<UserID, Balance, StringLen> Project<UserID, Balance, StringLen>
 where
 	Balance: AtLeast32BitUnsigned,
@@ -163,7 +169,9 @@ where
 				status: Default::default(),
 				reason: Default::default()
 			},
-			total_user_scores: Default::default(),
+			total_user_scores: Zero::zero(),
+			number_of_reviews: Zero::zero(),
+			total_review_score: Zero::zero()
 		}
 	}
 }
