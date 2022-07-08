@@ -4,14 +4,14 @@ description = 'Substrate FRAME chocolate pallet for defining custom runtime logi
 edition = '2021'
 homepage = ''
 license = 'Unlicense'
-name = 'pallet-chocolate'
+name = 'pallet-users'
 publish = false
 repository = 'https://github.com/Chocolate-Project/chocolate-node'
 version = '0.1.0'
 readme = 'README.md'
 
 [package.metadata.docs.rs]
-targets = ["x86_64-unknown-linux-gnu"]
+targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
 serde = { version = "1.0.132", optional=true }
@@ -24,11 +24,6 @@ frame-support = { git = "https://github.com/paritytech/substrate", default-featu
 frame-system = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 sp-std = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 
-
-# ORML
-orml-traits = { git="https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
-orml-utilities = { git="https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
-
 # Chocolate
 
 chocolate-primitives = {  path="../../primitives",  default-features = false }
@@ -39,26 +34,16 @@ chocolate-primitives = {  path="../../primitives",  default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 sp-io = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
-pallet-treasury = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
-pallet-balances = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
-
-# Chocolate. For Tests.
-pallet-users = {  path="../users",  default-features = false }
 
 [features]
 default = ['std']
 runtime-benchmarks = ['frame-benchmarking']
 std = [
-    'serde',
     'codec/std',
     'sp-std/std',
     'frame-support/std',
     'frame-system/std',
-    'pallet-treasury/std',
-    'pallet-balances/std',
     'frame-benchmarking/std',
-    # added
     'chocolate-primitives/std',
-    'pallet-users/std',
 ]
 try-runtime = ['frame-support/try-runtime']

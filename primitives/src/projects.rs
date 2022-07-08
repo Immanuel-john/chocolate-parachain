@@ -2,11 +2,10 @@
 
 use frame_support::{
 	dispatch::DispatchResult, sp_runtime::traits::{AtLeast32BitUnsigned,Zero}, traits::Get, BoundedVec,
-	RuntimeDebug, pallet_prelude::{Member, MaybeSerializeDeserialize}, Parameter,
+	RuntimeDebug,
 };
 use frame_system::Config;
 use scale_info::TypeInfo;
-
 /// A simple u32
 pub type ProjectID = u32;
 /// Index for reviews , use to link to project
@@ -108,8 +107,7 @@ impl Default for Status {
 /// Default reason - storage req
 impl<StringLen> Default for Reason<StringLen>
 where
-StringLen: Get<u32>,
-
+	StringLen: Get<u32>,
 {
 	fn default() -> Self {
 		Reason::PassedRequirements
@@ -180,23 +178,24 @@ where
 pub trait ProjectIO<T: Config> {
 	type UserID;
 	type Balance: AtLeast32BitUnsigned;
-	type StringLen: Get<u32> +  Member +  Parameter + MaybeSerializeDeserialize + Clone;
+	type StringLimit: Get<u32>;
 	/// Checks:
 	/// If the projects' reward value reflects what is reserved, excluding existential value
 	fn check_reward(
-		project: &Project<Self::UserID, Self::Balance, Self::StringLen>,
+		project: &Project<Self::UserID, Self::Balance, Self::StringLimit>,
 	) -> DispatchResult;
 	/// Check if the project owner can offer up hardcoded amount as init.
 	fn can_reward(project: &Self::UserID) -> bool;
 	/// Reserve an initial amount for use as reward
 	fn reserve_reward(
-		project: &mut Project<Self::UserID, Self::Balance, Self::StringLen>,
+		project: &mut Project<Self::UserID, Self::Balance, Self::StringLimit>,
 	) -> DispatchResult;
 	/// Reward the user with an amount and effect edits on the struct level. (Exposes amount in free balance for next step (transfer))
 	/// Assumed to be executed right before the final balance transfer
-	/// Note: If any failure happens after, reward may be lost.
+	/// # Note: 
+	/// If any failure happens after, reward may be lost.
 	fn reward(
-		project: &mut Project<Self::UserID, Self::Balance, Self::StringLen>,
+		project: &mut Project<Self::UserID, Self::Balance, Self::StringLimit>,
 		amount: Self::Balance,
 	) -> DispatchResult;
 }

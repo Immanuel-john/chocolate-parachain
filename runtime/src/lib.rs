@@ -165,6 +165,20 @@ pub enum CurrencyId {
 	BTC,
 }
 
+pub const STRING_LIMIT: u32 = 1_000_000_000;
+/// The maximum length of a name or symbol stored on-chain.
+#[derive(
+	Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialOrd, Ord,
+)]
+#[cfg_attr(feature = "std", derive(Deserialize, Serialize))]
+pub struct  StringLimit;
+
+impl Get<u32>  for StringLimit {
+	fn get() -> u32 {
+		STRING_LIMIT
+	}
+}
+
 pub type Amount = i128;
 
 /// Identifier for a named reserve in orml tokens
@@ -483,26 +497,6 @@ impl pallet_template::Config for Runtime {
 	type Event = Event;
 	type Currency  = Currencies;
 }
-parameter_types! {
-	pub const RewardCap: Balance = 50 * HECTOUNIT;
-	pub const UserCollateral: Balance = 10 * HECTOUNIT;
-	pub const StringLimit: u32 =  1_000_000_000_000;
-}
-/// Configure the pallet-chocolate in pallets/chocolate.
-impl pallet_chocolate::Config for Runtime {
-	type Event = Event;
-	type ApprovedOrigin = EnsureOneOf<
-		AccountId,
-		EnsureRoot<AccountId>,
-		pallet_collective::EnsureProportionAtLeast<_3, _5, AccountId, CouncilCollective>,
-	>;
-	type Currency = Balances;
-	type TreasuryOutlet = Treasury;
-	type RewardCap = RewardCap;
-	type UsersOutlet = UsersModule;
-	type UserCollateral = UserCollateral;
-	type StringLimit =  StringLimit;
-}
 
 
 impl orml_tokens::Config for Runtime {
@@ -543,6 +537,30 @@ impl orml_currencies::Config for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const RewardCap: Balance = 50 * HECTOUNIT;
+	pub const UserCollateral: Balance = 10 * HECTOUNIT;
+}
+/// Configure the pallet-chocolate in pallets/chocolate.
+impl pallet_chocolate::Config for Runtime {
+	type Event = Event;
+	type ApprovedOrigin = EnsureOneOf<
+		AccountId,
+		EnsureRoot<AccountId>,
+		pallet_collective::EnsureProportionAtLeast<_3, _5, AccountId, CouncilCollective>,
+	>;
+	type Currency = Balances;
+	type TreasuryOutlet = Treasury;
+	type RewardCap = RewardCap;
+	type UsersOutlet = UsersModule;
+	type UserCollateral = UserCollateral;
+	type StringLimit =  StringLimit;
+}
+/// Configure the pallet-users in pallets/users.
+impl pallet_users::Config for Runtime {
+	type Event = Event;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -577,7 +595,8 @@ construct_runtime!(
 
 		// Chocolate
 		TemplatePallet: pallet_template::{Pallet, Call, Storage, Event<T>}  = 40,
-		ChocolateModule: pallet_chocolate::{Pallet, Call, Config<T>, Storage, Event<T>},
+		UsersModule: pallet_users::{Pallet, Call, Storage, Event<T>} =  43,
+		ChocolateModule: pallet_chocolate::{Pallet, Call, Config<T>, Storage, Event<T>} =  44,
 
 		// Orml
 		Currencies: orml_currencies::{Pallet, Call} = 41,

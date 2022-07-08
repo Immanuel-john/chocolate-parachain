@@ -24,6 +24,8 @@ smallvec = "1.6.1"
 
 # Local
 pallet-template = { path = "../pallets/template", default-features = false }
+pallet-chocolate = { path = "../pallets/chocolate", default-features = false }
+pallet-users = { path = "../pallets/users", default-features = false }
 
 # ORML
 
@@ -131,9 +133,11 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-	'orml-currencies/std',
-    'orml-tokens/std',
-    'orml-traits/std',
+	"orml-currencies/std",
+    "orml-tokens/std",
+    "orml-traits/std",
+	"pallet-chocolate/std",
+	"pallet-users/std",
 ]
 
 runtime-benchmarks = [

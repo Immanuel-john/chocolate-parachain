@@ -1,13 +1,20 @@
 use crate as pallet_chocolate;
-use frame_support::{parameter_types,traits::GenesisBuild};
+use codec::{Encode, Decode, MaxEncodedLen};
+use frame_support::{parameter_types,traits::{GenesisBuild, Get}, RuntimeDebug};
 use frame_system as system;
 use pallet_users;
+use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 	BuildStorage,
 };
+
+
+#[cfg(feature = "std")]
+pub use serde::{Deserialize, Serialize};
+
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -57,6 +64,7 @@ impl system::Config for Test {
 	type SystemWeightInfo = ();
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -84,10 +92,22 @@ impl pallet_balances::Config for Test {
 impl pallet_users::Config for Test {
 	type Event = Event;
 }
+
+pub const STRING_LIMIT: u32 = 1_000_000_000;
+#[derive(
+	Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialOrd, Ord,
+)]
+#[cfg_attr(feature = "std", derive(Deserialize, Serialize))]
+pub struct  StringLimit;
+
+impl Get<u32>  for StringLimit {
+	fn get() -> u32 {
+		STRING_LIMIT
+	}
+}
 parameter_types! {
 	pub const Cap: u128 = 100;
 	pub const UserCollateral: u128 = 10;
-	pub const StringLimit:  u32 = 1_000_000_000;
 }
 // our configs start here
 impl pallet_chocolate::Config for Test {

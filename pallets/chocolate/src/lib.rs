@@ -275,7 +275,7 @@ pub mod pallet {
 	impl<T: Config> ProjectIO<T> for Pallet<T> {
 		type UserID = T::AccountId;
 		type Balance = BalanceOf<T>;
-		type StringLen = T::StringLimit;
+		type StringLimit = T::StringLimit;
 		/// does existence checks for us to see if the project owner can release required reward+liveness req safely
 		fn can_reward(who: &Self::UserID) -> bool {
 			let existential = T::Currency::minimum_balance();
