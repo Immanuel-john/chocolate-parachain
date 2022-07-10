@@ -972,6 +972,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "chocolate-primitives"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5265,6 +5281,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-chocolate"
+version = "0.1.0"
+dependencies = [
+ "chocolate-primitives",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "orml-traits",
+ "orml-utilities",
+ "pallet-balances",
+ "pallet-treasury",
+ "pallet-users",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-collator-selection"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.24#95ca5a085727c1494ddeeae4a2b2e69c4ee1933b"
@@ -5793,6 +5831,8 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "orml-currencies",
+ "orml-tokens",
  "orml-traits",
  "orml-utilities",
  "parity-scale-codec",
@@ -5900,6 +5940,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-users"
+version = "0.1.0"
+dependencies = [
+ "chocolate-primitives",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-utility"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.24#814752f60ab8cce7e2ece3ce0c1b10799b4eab28"
@@ -5982,6 +6039,7 @@ dependencies = [
 name = "parachain-template-node"
 version = "0.1.0"
 dependencies = [
+ "chocolate-primitives",
  "clap",
  "cumulus-client-cli",
  "cumulus-client-collator",
@@ -6072,13 +6130,18 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
+ "pallet-chocolate",
  "pallet-collator-selection",
+ "pallet-collective",
+ "pallet-elections-phragmen",
  "pallet-session",
  "pallet-sudo",
  "pallet-template",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-treasury",
+ "pallet-users",
  "pallet-xcm",
  "parachain-info",
  "parity-scale-codec",
@@ -6099,6 +6162,7 @@ dependencies = [
  "sp-std",
  "sp-transaction-pool",
  "sp-version",
+ "static_assertions",
  "substrate-wasm-builder",
  "xcm",
  "xcm-builder",

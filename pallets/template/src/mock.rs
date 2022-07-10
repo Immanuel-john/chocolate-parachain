@@ -56,6 +56,7 @@ impl system::Config for Test {
 
 impl pallet_template::Config for Test {
 	type Event = Event;
+	type Currency = Currencies;
 }
 
 // Build genesis storage according to the mock runtime.
