@@ -1,4 +1,3 @@
-#![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{
 	dispatch::DispatchResult, sp_runtime::traits::{AtLeast32BitUnsigned,Zero}, traits::Get, BoundedVec,
@@ -62,7 +61,7 @@ pub enum Status {
 #[derive(
 	Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialOrd, Ord,
 )]
-#[derive(Deserialize, Serialize)]
+#[cfg_attr(feature = "std", derive(Deserialize, Serialize))]
 pub enum Reason<StringLen>
 where
 StringLen: Get<u32>,

@@ -1,11 +1,11 @@
 use cumulus_primitives_core::ParaId;
-use parachain_template_runtime::{AccountId, AuraId, Signature, EXISTENTIAL_DEPOSIT, CurrencyId};
+use parachain_template_runtime::{AccountId, AuraId, Signature, EXISTENTIAL_DEPOSIT, CurrencyId, UNIT, Balance};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
-
+use chocolate_primitives::projects::{Status,Reason};
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec =
 	sc_service::GenericChainSpec<parachain_template_runtime::GenesisConfig, Extensions>;
@@ -182,6 +182,11 @@ fn testnet_genesis(
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 ) -> parachain_template_runtime::GenesisConfig {
+	let num_endowed_accounts = endowed_accounts.len();
+	
+	const ENDOWMENT: Balance = 10u128.pow(9) * UNIT;
+	const STASH: Balance = ENDOWMENT / 1000;
+
 	parachain_template_runtime::GenesisConfig {
 		system: parachain_template_runtime::SystemConfig {
 			code: parachain_template_runtime::WASM_BINARY
@@ -189,7 +194,7 @@ fn testnet_genesis(
 				.to_vec(),
 		},
 		balances: parachain_template_runtime::BalancesConfig {
-			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 60)).collect(),
+			balances: endowed_accounts.iter().cloned().map(|k| (k, ENDOWMENT)).collect(),
 		},
 		parachain_info: parachain_template_runtime::ParachainInfoConfig { parachain_id: id },
 		collator_selection: parachain_template_runtime::CollatorSelectionConfig {
@@ -263,5 +268,18 @@ fn testnet_genesis(
 				]
 			},
 		},
+		phragmen_election: parachain_template_runtime::PhragmenElectionConfig {
+			// configure all members to have an initial 'stash' backing, or elect them
+			// - These map to our default members of Council Collective - If not changed, council remains constant for n period
+			// Elect only half endowed accounts initially - Alice and Bob  - Backed with 1M each - Based on 12 Decimal choc.
+			members: endowed_accounts
+				.iter()
+				.take((num_endowed_accounts + 1) / 2)
+				.cloned()
+				.map(|member| (member, STASH))
+				.collect(),
+		},
+		council: parachain_template_runtime::CouncilConfig::default(),
+		treasury: Default::default(),
 	}
 }
