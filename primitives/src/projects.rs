@@ -1,7 +1,8 @@
-
 use frame_support::{
-	dispatch::DispatchResult, sp_runtime::traits::{AtLeast32BitUnsigned,Zero}, traits::Get, BoundedVec,
-	RuntimeDebug,
+	dispatch::DispatchResult,
+	sp_runtime::traits::Zero,
+	traits::{Get,tokens::Balance as BalanceTrait},
+	BoundedVec, RuntimeDebug,
 };
 use frame_system::Config;
 use scale_info::TypeInfo;
@@ -25,7 +26,7 @@ where
 	/// A snapshot of the user's rank at the time of review
 	pub point_snapshot: u32,
 	/// Score of a review
-	pub review_score: u8
+	pub review_score: u8,
 }
 
 /// The metadata of a project.
@@ -64,7 +65,7 @@ pub enum Status {
 #[cfg_attr(feature = "std", derive(Deserialize, Serialize))]
 pub enum Reason<StringLen>
 where
-StringLen: Get<u32>,
+	StringLen: Get<u32>,
 {
 	/// Custom reason to encapsulate further things like marketCap and other details
 	Other(BoundedVec<u8, StringLen>),
@@ -91,8 +92,7 @@ StringLen: Get<u32>,
 )]
 pub struct ProposalStatus<StringLen>
 where
-StringLen: Get<u32>,
-
+	StringLen: Get<u32>,
 {
 	pub status: Status,
 	pub reason: Reason<StringLen>,
@@ -128,7 +128,7 @@ where
 )]
 pub struct Project<UserID, Balance, StringLen>
 where
-	Balance: AtLeast32BitUnsigned,
+	Balance: BalanceTrait,
 	StringLen: Get<u32>,
 {
 	/// The owner of the project
@@ -146,12 +146,12 @@ where
 	/// The total review scores for a project
 	pub total_review_score: u64,
 	/// The number of reviews submitted
-	pub number_of_reviews: u32
+	pub number_of_reviews: u32,
 }
 
 impl<UserID, Balance, StringLen> Project<UserID, Balance, StringLen>
 where
-	Balance: AtLeast32BitUnsigned,
+	Balance: BalanceTrait,
 	StringLen: Get<u32>,
 {
 	///  Set useful defaults.
@@ -164,11 +164,11 @@ where
 			reward: Zero::zero(),
 			proposal_status: ProposalStatus {
 				status: Default::default(),
-				reason: Default::default()
+				reason: Default::default(),
 			},
 			total_user_scores: Zero::zero(),
 			number_of_reviews: Zero::zero(),
-			total_review_score: Zero::zero()
+			total_review_score: Zero::zero(),
 		}
 	}
 }
@@ -176,7 +176,7 @@ where
 /// - reserve some token for rewarding its reviewers.
 pub trait ProjectIO<T: Config> {
 	type UserID;
-	type Balance: AtLeast32BitUnsigned;
+	type Balance: BalanceTrait;
 	type StringLimit: Get<u32>;
 	/// Checks:
 	/// If the projects' reward value reflects what is reserved, excluding existential value
@@ -191,7 +191,7 @@ pub trait ProjectIO<T: Config> {
 	) -> DispatchResult;
 	/// Reward the user with an amount and effect edits on the struct level. (Exposes amount in free balance for next step (transfer))
 	/// Assumed to be executed right before the final balance transfer
-	/// # Note: 
+	/// # Note:
 	/// If any failure happens after, reward may be lost.
 	fn reward(
 		project: &mut Project<Self::UserID, Self::Balance, Self::StringLimit>,

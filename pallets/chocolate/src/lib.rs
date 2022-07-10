@@ -70,7 +70,7 @@ pub mod pallet {
 	/// type alias for project
 	pub type ProjectAl<T> =
 		Project<<T as frame_system::Config>::AccountId, BalanceOf<T>, <T as Config>::StringLimit>;
-	/// Type alias for balance, binding T::Currency to Currency::AccountId and then extracting from that Balance. Accessible via T::BalanceOf. T is frame_System.
+	/// Type alias for balance, binding T::Currency to Currency::AccountId and then extracting from that Balance. Accessible via T::BalanceOf.
 	pub type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 	/// Type alias for reason
@@ -109,16 +109,15 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored(u32, T::AccountId),
-		/// parameters. [owner,cid,project_id]
+		/// parameters. [owner, cid, project_id]
 		ProjectCreated(T::AccountId, BoundedVec<u8, T::StringLimit>, ProjectID),
-		/// parameters. [owner,project_id]
+		/// parameters. [owner, project_id]
 		ReviewCreated(T::AccountId, ProjectID),
-		/// parameters [owner,id]
+		/// parameters [owner, project_id]
 		ReviewAccepted(T::AccountId, ProjectID),
 		/// Minted [amount]
 		Minted(BalanceOf<T>),
 	}
-	// ----^edit
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {

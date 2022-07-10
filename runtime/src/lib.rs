@@ -17,15 +17,12 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
-use sp_core::{
-	crypto::KeyTypeId,
-	OpaqueMetadata
-};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature,Percent
+	ApplyExtrinsicResult, MultiSignature, Percent,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -35,7 +32,7 @@ use static_assertions::const_assert;
 
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{Everything,EnsureOneOf,Get,LockIdentifier},
+	traits::{EnsureOneOf, Everything, Get, LockIdentifier},
 	weights::{
 		constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
 		WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
@@ -57,13 +54,13 @@ use serde::{Deserialize, Serialize};
 pub use sp_runtime::BuildStorage;
 
 // Polkadot imports
-use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate, impls::DealWithFees};
+use polkadot_runtime_common::{impls::DealWithFees, BlockHashCount, SlowAdjustingFeeUpdate};
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 // Orml imports
-use orml_traits::parameter_type_with_key;
 use orml_currencies::BasicCurrencyAdapter;
+use orml_traits::parameter_type_with_key;
 
 // XCM Imports
 use xcm::latest::prelude::BodyId;
@@ -160,7 +157,19 @@ impl WeightToFeePolynomial for WeightToFee {
 	}
 }
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug,TypeInfo, MaxEncodedLen, PartialOrd, Ord)]
+#[derive(
+	Encode,
+	Decode,
+	Eq,
+	PartialEq,
+	Copy,
+	Clone,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialOrd,
+	Ord,
+)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CurrencyId {
 	Native,
@@ -169,17 +178,18 @@ pub enum CurrencyId {
 	BTC,
 }
 
-pub const STRING_LIMIT: u32 = 1_000_000_000;
+/// String Limit, currently configured to: 254 full-length (4-byte) utf-8 encoded chars.
+pub const STRING_LIMIT_VALUE: u32 = 1_016;
 /// The maximum length of a name or symbol stored on-chain.
 #[derive(
 	Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialOrd, Ord,
 )]
 #[cfg_attr(feature = "std", derive(Deserialize, Serialize))]
-pub struct  StringLimit;
+pub struct StringLimit;
 
-impl Get<u32>  for StringLimit {
+impl Get<u32> for StringLimit {
 	fn get() -> u32 {
-		STRING_LIMIT
+		STRING_LIMIT_VALUE
 	}
 }
 
@@ -247,7 +257,7 @@ pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
 
 // Unit = the base number of indivisible units for balances
-pub const HECTOUNIT: Balance =  100 * UNIT;
+pub const HECTOUNIT: Balance = 100 * UNIT;
 pub const UNIT: Balance = 1_000_000_000_000;
 pub const MILLIUNIT: Balance = 1_000_000_000;
 pub const MICROUNIT: Balance = 1_000_000;
@@ -302,9 +312,9 @@ parameter_types! {
 	pub const SS58Prefix: u16 = 42;
 }
 
-type MoreThanHalfCouncil = 	EnsureOneOf<
+type MoreThanHalfCouncil = EnsureOneOf<
 	EnsureRoot<AccountId>,
-	pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective,1, 2>,
+	pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
 >;
 
 // Configure FRAME pallets to include in runtime.
@@ -409,7 +419,8 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
+	type OnChargeTransaction =
+		pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -510,9 +521,8 @@ impl pallet_collator_selection::Config for Runtime {
 /// Configure the pallet template in pallets/template.
 impl pallet_template::Config for Runtime {
 	type Event = Event;
-	type Currency  = Currencies;
+	type Currency = Currencies;
 }
-
 
 impl orml_tokens::Config for Runtime {
 	type Event = Event;
@@ -525,16 +535,15 @@ impl orml_tokens::Config for Runtime {
 	type OnNewTokenAccount = ();
 	type OnKilledTokenAccount = ();
 	// Shared with balances.
-	type MaxLocks =  MaxLocks;
-	type MaxReserves =  MaxReserves;
+	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
 	type ReserveIdentifier = ReserveIdentifier;
-    type DustRemovalWhitelist = DustRemovalWhitelist;
+	type DustRemovalWhitelist = DustRemovalWhitelist;
 }
-
 
 parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-		match _currency_id { 
+		match _currency_id {
 			CurrencyId::Native => 1000,
 			_ => 2
 		}
@@ -565,7 +574,7 @@ impl pallet_chocolate::Config for Runtime {
 	type RewardCap = RewardCap;
 	type UsersOutlet = UsersModule;
 	type UserCollateral = UserCollateral;
-	type StringLimit =  StringLimit;
+	type StringLimit = StringLimit;
 }
 /// Configure the pallet-users in pallets/users.
 impl pallet_users::Config for Runtime {
@@ -650,7 +659,7 @@ parameter_types! {
 
 type ApproveOrigin = EnsureOneOf<
 	EnsureRoot<AccountId>,
-	pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective,3, 5>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 5>,
 >;
 
 impl pallet_treasury::Config for Runtime {
