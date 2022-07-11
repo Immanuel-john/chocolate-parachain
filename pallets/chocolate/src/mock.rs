@@ -116,7 +116,6 @@ impl pallet_chocolate::Config for Test {
 	type ApprovedOrigin = frame_system::EnsureRoot<u64>;
 	// this is simply a pointer to the true implementor,and creator of the currency trait...the balances pallet
 	type Currency = Balances;
-	type TreasuryOutlet = ();
 	type RewardCap = Cap;
 	type UsersOutlet = UsersModule;
 	type UserCollateral = UserCollateral;

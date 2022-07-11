@@ -281,7 +281,7 @@ fn testnet_genesis(
 		},
 		council: parachain_template_runtime::CouncilConfig::default(),
 		treasury: Default::default(),
-		minting_module: {
+		minting_module: parachain_template_runtime::MintingModuleConfig {
 			init_mint: 5000 * UNIT
 		}
 	}

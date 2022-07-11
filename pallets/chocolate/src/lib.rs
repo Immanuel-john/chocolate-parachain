@@ -30,7 +30,7 @@ pub mod pallet {
 			ArithmeticError,
 		},
 		traits::{
-			Currency, ExistenceRequirement::KeepAlive, Imbalance, OnUnbalanced, ReservableCurrency,
+			Currency, ExistenceRequirement::KeepAlive, ReservableCurrency,
 		},
 	};
 	use frame_system::{pallet_prelude::*, Origin};
@@ -46,14 +46,12 @@ pub mod pallet {
 		type ApprovedOrigin: EnsureOrigin<Self::Origin>;
 		/// The currency trait, associated to the pallet. All methods accessible from T::Currency*
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
-		/// * Treasury outlet: A type with bounds to move slashed funds to the treasury.
-		type TreasuryOutlet: OnUnbalanced<NegativeImbalanceOf<Self>>;
-		/// This is it! The user pallet. A type with bounds to access the user module.
+		/// The user pallet. A type with bounds to access the user module.
 		type UsersOutlet: UserIO<Self>;
 		/// * Reward Cap: Max reward projects can place on themselves. Interestingly, this also serves as their stake amount.
 		#[pallet::constant]
 		type RewardCap: Get<BalanceOf<Self>>;
-		/// Hard coded collateral amount for the Users
+		/// Collateral amount for the Users
 		#[pallet::constant]
 		type UserCollateral: Get<BalanceOf<Self>>;
 		/// The maximum length of a name or symbol stored on-chain.
@@ -61,9 +59,6 @@ pub mod pallet {
 		type StringLimit: Get<u32> + Member + Parameter + MaybeSerializeDeserialize + Clone;
 	}
 	// ------------------------------------------------------------Type aliases ---------------------\
-	pub type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
-		<T as frame_system::Config>::AccountId,
-	>>::NegativeImbalance;
 	/// type alias for review - this is the base struct, like the 2nd part of Balancesof
 	pub type ReviewAl<T> =
 		Review<<T as frame_system::Config>::AccountId, <T as Config>::StringLimit>;
@@ -115,8 +110,6 @@ pub mod pallet {
 		ReviewCreated(T::AccountId, ProjectID),
 		/// parameters [owner, project_id]
 		ReviewAccepted(T::AccountId, ProjectID),
-		/// Minted [amount]
-		Minted(BalanceOf<T>),
 	}
 	// Errors inform users that something went wrong.
 	#[pallet::error]
@@ -257,16 +250,6 @@ pub mod pallet {
 				*p = Option::Some(project);
 			});
 			Self::deposit_event(Event::ReviewCreated(user_id, project_id));
-			Ok(())
-		}
-		#[pallet::weight(10_000)]
-		pub fn mint(origin: OriginFor<T>, x: BalanceOf<T>) -> DispatchResult {
-			// call its ensure origin - doesn't return origin. Only checks
-			T::ApprovedOrigin::ensure_origin(origin)?;
-			let imbalance = T::Currency::issue(x);
-			let minted = imbalance.peek();
-			Self::do_mint(imbalance);
-			Self::deposit_event(Event::Minted(minted));
 			Ok(())
 		}
 	}
@@ -432,10 +415,6 @@ pub mod pallet {
 			T::Currency::reserve(&id, reserve)?;
 			Ok(())
 		}
-		/// Function to take negative imbalance to the treasury, expected to be called after creating one e.g through T::Currency::issue()
-		pub fn do_mint(amount: NegativeImbalanceOf<T>) {
-			T::TreasuryOutlet::on_unbalanced(amount);
-		}
 
 		/// Create a project from required data - only for genesis
 		/// Assumes user has already been craeted.
@@ -485,6 +464,9 @@ pub mod pallet {
 	pub struct GenesisConfig<T: Config> {
 		/// Get the parameters for the init projects function
 		pub init_projects: Vec<(Status, ReasonOf<T>)>,
+		/// Initial users to use to init projects.
+		/// All accounts used should be endowed with initial balance, atleast enough to handle reserve
+		/// Zip may mean users are matched up with projects by index
 		pub init_users: Vec<T::AccountId>,
 	}
 	/// By default a generic project or known projects will be shown - polkadot & sisters
@@ -498,13 +480,14 @@ pub mod pallet {
 
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		// Genesis build: Creates mock reviews for testing.
 		fn build(&self) {
 			// Create users.
 			let iter_users = (&self.init_users).iter();
 			for id in iter_users.clone() {
 				T::UsersOutlet::set_user(id, Default::default());
 			}
-			// setup a counter to serve as project index
+
 			let meta: Vec<BoundedVecOf<u8, T>> = constants::project::METADATA
 				.iter()
 				.map(|each| each.to_vec().try_into().expect("Metadata should be within StringLimit"))
@@ -515,6 +498,7 @@ pub mod pallet {
 				.map(|((s, r), accnt)| (accnt, s.clone(), r.clone()))
 				.collect();
 			let zipped = (init_projects_w_users).into_iter().zip(meta.iter());
+
 			// create project from associated metadata in zip.
 			for each in zipped {
 				let (project_ref, meta_ref) = each;
@@ -526,29 +510,12 @@ pub mod pallet {
 					.filter(|id| acnt.ne(id))
 					.map(|long| long.clone())
 					.collect();
-				// Give filtered ids and main acnt enough funds to pay for reward.
-				//  (Hack). More formal ways should be decided upon.
-
-				let two = BalanceOf::<T>::from(2u32);
-				let minimum = T::Currency::minimum_balance();
-				let amnt_issue = T::RewardCap::get().saturating_mul(two).saturating_add(minimum);
-				let amnt_issue2 =
-					T::UserCollateral::get().saturating_mul(two).saturating_add(minimum);
-				let total = amnt_issue.saturating_add(amnt_issue2).saturating_mul(two);
-				let imbalance = T::Currency::issue(total.clone());
-				T::Currency::resolve_creating(&acnt, imbalance);
-				filtered_ids
-					.iter()
-					.for_each(|id| T::Currency::resolve_creating(id, T::Currency::issue(total)));
 
 				// create reviews and projects and store.
-
 				Pallet::<T>::initialize_project(acnt.clone(), meta_cid, stat, reas);
 				Pallet::<T>::initialize_reviews(filtered_ids);
 			}
-			// Fill the treasury - A little hack.
-			let imbalance = T::Currency::issue(T::RewardCap::get());
-			Pallet::<T>::do_mint(imbalance);
+
 		}
 	}
 }

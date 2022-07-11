@@ -570,7 +570,6 @@ impl pallet_chocolate::Config for Runtime {
 	type Event = Event;
 	type ApprovedOrigin = ApproveOrigin;
 	type Currency = Balances;
-	type TreasuryOutlet = Treasury;
 	type RewardCap = RewardCap;
 	type UsersOutlet = UsersModule;
 	type UserCollateral = UserCollateral;
