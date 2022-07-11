@@ -544,8 +544,8 @@ impl orml_tokens::Config for Runtime {
 parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
 		match _currency_id {
-			CurrencyId::Native => 1000,
-			_ => 2
+			CurrencyId::Native => EXISTENTIAL_DEPOSIT,
+			_ => EXISTENTIAL_DEPOSIT
 		}
 	};
 }
@@ -569,11 +569,12 @@ parameter_types! {
 impl pallet_chocolate::Config for Runtime {
 	type Event = Event;
 	type ApprovedOrigin = ApproveOrigin;
-	type Currency = Balances;
+	type Currency = Currencies;
 	type RewardCap = RewardCap;
 	type UsersOutlet = UsersModule;
 	type UserCollateral = UserCollateral;
 	type StringLimit = StringLimit;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
 }
 /// Configure the pallet-users in pallets/users.
 impl pallet_users::Config for Runtime {
@@ -720,17 +721,17 @@ construct_runtime!(
 
 		// Chocolate
 		TemplatePallet: pallet_template::{Pallet, Call, Storage, Event<T>}  = 40,
-		UsersModule: pallet_users::{Pallet, Call, Storage, Event<T>} =  43,
-		ChocolateModule: pallet_chocolate::{Pallet, Call, Config<T>, Storage, Event<T>} =  44,
-		MintingModule: pallet_minting::{Pallet, Call, Config<T>, Storage, Event<T>} =  48,
+		UsersModule: pallet_users::{Pallet, Call, Storage, Event<T>} =  41,
+		ChocolateModule: pallet_chocolate::{Pallet, Call, Config<T>, Storage, Event<T>} =  42,
+		MintingModule: pallet_minting::{Pallet, Call, Config<T>, Storage, Event<T>} =  43,
 		// TREASURY
-		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>}  = 51,
-		Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} =  52,
-		PhragmenElection: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 53,
+		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>}  = 50,
+		Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} =  51,
+		PhragmenElection: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 52,
 
 		// Orml multitokens
-		Currencies: orml_currencies::{Pallet, Call} = 61,
-		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 62,
+		Currencies: orml_currencies::{Pallet, Call} = 60,
+		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 61,
 	}
 );
 

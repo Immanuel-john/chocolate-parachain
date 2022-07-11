@@ -1,6 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://docs.substrate.io/v3/runtime/frame>
@@ -15,16 +14,18 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-
-
-
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{traits::{Currency, OnUnbalanced, Imbalance},sp_runtime::traits::Zero, pallet_prelude::*};
-	use frame_system::pallet_prelude::*;
+	use frame_support::{
+		assert_ok,
+		pallet_prelude::*,
+		sp_runtime::traits::Zero,
+		traits::{Currency, Imbalance, OnUnbalanced},
+	};
+	use frame_system::{pallet_prelude::*, Origin};
 
 	use super::*;
-	
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
@@ -36,10 +37,10 @@ pub mod pallet {
 		///  Origins that must approve to use the pallet - Should be implemented properly by provider.
 		type ApproveOrigin: EnsureOrigin<Self::Origin>;
 	}
-	
+
 	type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-	
+
 	pub type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
 		<T as frame_system::Config>::AccountId,
 	>>::NegativeImbalance;
@@ -47,7 +48,6 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
-	
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -65,7 +65,7 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
- 	#[pallet::call]
+	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(10_000)]
 		pub fn mint(origin: OriginFor<T>, x: BalanceOf<T>) -> DispatchResult {
@@ -84,7 +84,6 @@ pub mod pallet {
 			T::TreasuryOutlet::on_unbalanced(amount);
 		}
 	}
-
 
 	/// Genesis config for the minting pallet. Use to mint an initial amount to treasury
 	/// E.g Use: Token sales.
@@ -106,10 +105,8 @@ pub mod pallet {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			// Repeat mint call, without origin check
-			let imbalance = T::Currency::issue(self.init_mint);
-			let minted = imbalance.peek();
-			<Pallet<T>>::do_mint(imbalance);
-			<Pallet<T>>::deposit_event(Event::Minted(minted));
+			let dispatch = <Pallet<T>>::mint(Origin::<T>::Root.into(), self.init_mint);
+			assert_ok!(dispatch);
 		}
 	}
 }

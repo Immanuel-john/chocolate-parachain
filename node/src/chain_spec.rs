@@ -228,8 +228,8 @@ fn testnet_genesis(
 			.iter()
 			.flat_map(|x| {
 				vec![
-					(x.clone(), CurrencyId::DOT, 10u128.pow(16)),
-					(x.clone(), CurrencyId::BTC, 10u128.pow(16)),
+					(x.clone(), CurrencyId::DOT, ENDOWMENT),
+					(x.clone(), CurrencyId::BTC, ENDOWMENT),
 				]
 			})
 			.collect(),
@@ -239,7 +239,6 @@ fn testnet_genesis(
 		chocolate_module: parachain_template_runtime::ChocolateModuleConfig {
 			init_projects: {
 				let ps_req = Reason::PassedRequirements;
-				// use a static list for accounts
 				vec![
 					(Status::Accepted, ps_req.clone()),
 					(Status::Rejected, Reason::Malicious),
@@ -252,19 +251,22 @@ fn testnet_genesis(
 				]
 			},
 			init_users: {
+				// use a static list for accounts
+				// Update init_projects and token alloc in multiassets when updating this.
+				// FIXME: Panics when this is anything other than Native
 				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie"),
-					get_account_id_from_seed::<sr25519::Public>("Dave"),
-					get_account_id_from_seed::<sr25519::Public>("Eve"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+					(get_account_id_from_seed::<sr25519::Public>("Alice"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Bob"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Charlie"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Dave"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Eve"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Ferdie"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Alice//stash"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Bob//stash"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Charlie//stash"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Dave//stash"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Eve//stash"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"), CurrencyId::Native),
 				]
 			},
 		},

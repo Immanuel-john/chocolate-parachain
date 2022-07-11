@@ -29,13 +29,10 @@ pub mod pallet {
 			traits::{CheckedDiv, Saturating},
 			ArithmeticError,
 		},
-		traits::{
-			Currency, ExistenceRequirement::KeepAlive, ReservableCurrency,
-		},
 	};
 	use frame_system::{pallet_prelude::*, Origin};
-	use sp_std::str;
-	use sp_std::vec::Vec;
+	use orml_traits::{MultiCurrency, MultiReservableCurrency};
+	use sp_std::{borrow::ToOwned, str, vec::Vec};
 	// Include the ApprovedOrigin type here, and the method to get treasury id, then mint with currencymodule
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -44,8 +41,8 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		///  Origins that must approve to use the pallet - Should be implemented properly by provider.
 		type ApprovedOrigin: EnsureOrigin<Self::Origin>;
-		/// The currency trait, associated to the pallet. All methods accessible from T::Currency*
-		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+		/// The currency trait, bound to a multicurrency to accept different tokens. Named currency for (hopeful) interop.
+		type Currency: MultiCurrency<Self::AccountId> + MultiReservableCurrency<Self::AccountId>;
 		/// The user pallet. A type with bounds to access the user module.
 		type UsersOutlet: UserIO<Self>;
 		/// * Reward Cap: Max reward projects can place on themselves. Interestingly, this also serves as their stake amount.
@@ -57,21 +54,27 @@ pub mod pallet {
 		/// The maximum length of a name or symbol stored on-chain.
 		#[pallet::constant]
 		type StringLimit: Get<u32> + Member + Parameter + MaybeSerializeDeserialize + Clone;
+		/// Native currency to be used in settling rewards
+		type GetNativeCurrencyId: Get<CurrencyIdOf<Self>>;
 	}
 	// ------------------------------------------------------------Type aliases ---------------------\
 	/// type alias for review - this is the base struct, like the 2nd part of Balancesof
 	pub type ReviewAl<T> =
-		Review<<T as frame_system::Config>::AccountId, <T as Config>::StringLimit>;
+		Review<<T as frame_system::Config>::AccountId, <T as Config>::StringLimit, CurrencyIdOf<T>>;
 	/// type alias for project
 	pub type ProjectAl<T> =
 		Project<<T as frame_system::Config>::AccountId, BalanceOf<T>, <T as Config>::StringLimit>;
 	/// Type alias for balance, binding T::Currency to Currency::AccountId and then extracting from that Balance. Accessible via T::BalanceOf.
 	pub type BalanceOf<T> =
-		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+		<<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
 	/// Type alias for reason
 	pub type ReasonOf<T> = Reason<<T as Config>::StringLimit>;
 	/// Type Alias for Bounded Vec
 	pub type BoundedVecOf<U, T> = BoundedVec<U, <T as Config>::StringLimit>;
+	/// Currency Id for pallet
+	pub type CurrencyIdOf<T> = <<T as Config>::Currency as MultiCurrency<
+		<T as frame_system::Config>::AccountId,
+	>>::CurrencyId;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -178,6 +181,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			review_meta: (u8, BoundedVecOf<u8, T>),
 			project_id: ProjectID,
+			collateral_currency_id: CurrencyIdOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			// CHECKS & Inits
@@ -186,9 +190,9 @@ pub mod pallet {
 			ensure!(!<Reviews<T>>::contains_key(&who, project_id), Error::<T>::DuplicateReview);
 			ensure!(this_project.owner_id.ne(&who), Error::<T>::OwnerReviewedProject);
 			ensure!(review_meta.0 <= 5 && review_meta.0 >= 1, Error::<T>::ReviewScoreOutOfRange);
-			let reserve = Pallet::<T>::can_collateralise(&who)?;
+			let reserve = Pallet::<T>::can_collateralise(collateral_currency_id, &who)?;
 			// Fallible MUTATIONS
-			Pallet::<T>::collateralise(&who, reserve)?;
+			Pallet::<T>::collateralise(collateral_currency_id, &who, reserve)?;
 			let user = T::UsersOutlet::get_or_create_default(&who);
 			this_project.total_user_scores =
 				this_project.total_user_scores.saturating_add(user.rank_points);
@@ -206,6 +210,7 @@ pub mod pallet {
 					},
 					point_snapshot: user.rank_points,
 					review_score: review_meta.0,
+					collateral_currency_id,
 				},
 			);
 			<Projects<T>>::mutate(project_id, |project| {
@@ -233,7 +238,10 @@ pub mod pallet {
 			// CHECKS
 			let is_proposed = review.proposal_status.status.eq(&Status::Proposed);
 			ensure!(is_proposed, Error::<T>::AcceptingNotProposed);
-			ensure!(Pallet::<T>::check_collateral(&user_id), Error::<T>::InconsistentCollateral);
+			ensure!(
+				Pallet::<T>::check_collateral(review.collateral_currency_id, &user_id),
+				Error::<T>::InconsistentCollateral
+			);
 			Pallet::<T>::check_reward(&project)?;
 			// MUTATIONS - Fallible
 			Pallet::<T>::reward_user(&user_id, &mut project, &review)?;
@@ -258,47 +266,45 @@ pub mod pallet {
 		type UserID = T::AccountId;
 		type Balance = BalanceOf<T>;
 		type StringLimit = T::StringLimit;
-		/// does existence checks for us to see if the project owner can release required reward+liveness req safely
+
 		fn can_reward(who: &Self::UserID) -> bool {
-			let existential = T::Currency::minimum_balance();
+			// Reward in native currency, for now.
+			let currency_id = T::GetNativeCurrencyId::get();
+			let existential = T::Currency::minimum_balance(currency_id);
 			let mut amount = T::RewardCap::get();
-			let reserved = T::Currency::reserved_balance(who);
-			// modulo test two
+			let reserved = T::Currency::reserved_balance(currency_id, who);
+			// Include existential deposit when removing to avoid dropping reserve acnt. (Most important if having multiple projects. )
+			// To be solved by: ProjectAdmin account only having one project
 			if (reserved % amount) < existential {
 				amount = amount.saturating_add(existential);
 			}
-			T::Currency::can_reserve(who, amount)
+			T::Currency::can_reserve(currency_id, who, amount)
 		}
-		/// Performs the necessary checks on the project's side to ensure that they can reward the user
-		/// At this instance
-		///
-		/// - checks if the project's advertised reward is same as reserved balance
-		/// - checks if the project has enough free balance to safely transfer reward after release to the user
+
 		fn check_reward(project_struct: &ProjectAl<T>) -> DispatchResult {
 			// If the reward is what is reserved + existential
-			let reserve = T::Currency::reserved_balance(&project_struct.owner_id); // If we had the reward, taking the modulo with reward cap would yield what we have??
-			let existential = T::Currency::minimum_balance();
+			let currency_id = T::GetNativeCurrencyId::get();
+			let reserve = T::Currency::reserved_balance(currency_id, &project_struct.owner_id); // If we had the reward, taking the modulo with reward cap would yield what we have??
+			let existential = T::Currency::minimum_balance(currency_id);
 			// assume reserve to be a superset of our reward.
 			let is_sufficient = reserve >= (project_struct.reward.saturating_add(existential));
 			ensure!(is_sufficient, Error::<T>::RewardInconsistent);
 			// ensure free balance too for the next step
-			let free_balance = T::Currency::free_balance(&project_struct.owner_id);
+			let free_balance = T::Currency::free_balance(currency_id, &project_struct.owner_id);
 			ensure!(free_balance >= existential, Error::<T>::InsufficientBalance);
 			Ok(())
 		}
-		/// Reserve some reward and possibly + liveness req as we initialise the project
-		/// # Fallible
-		/// does no checks for ability to reserve.
-		/// (When safe, move from mut to immut)
+
 		fn reserve_reward(project_struct: &mut ProjectAl<T>) -> DispatchResult {
-			let existential = T::Currency::minimum_balance();
+			let currency_id = T::GetNativeCurrencyId::get();
+			let existential = T::Currency::minimum_balance(currency_id);
 			let mut amount = T::RewardCap::get();
-			let reserved = T::Currency::reserved_balance(&project_struct.owner_id);
+			let reserved = T::Currency::reserved_balance(currency_id, &project_struct.owner_id);
 			// modulo test two
 			if (reserved % amount) < existential {
 				amount = amount.saturating_add(existential);
 			}
-			T::Currency::reserve(&project_struct.owner_id, amount)?;
+			T::Currency::reserve(currency_id, &project_struct.owner_id, amount)?;
 			project_struct.reward = T::RewardCap::get();
 			Ok(())
 		}
@@ -311,13 +317,16 @@ pub mod pallet {
 		///  with expect if we can't rollback, and returns dispatch error for inconsistent reward.
 		/// **Requires** : check_reward , check_collateral, (caller) reward_user (In context of accept reward)
 		fn reward(project_struct: &mut ProjectAl<T>, amount: Self::Balance) -> DispatchResult {
+			let currency_id = T::GetNativeCurrencyId::get();
 			// MUTATIONS
-			let _missing_reward = T::Currency::unreserve(&project_struct.owner_id, amount);
+			let _missing_reward =
+				T::Currency::unreserve(currency_id, &project_struct.owner_id, amount);
 			if _missing_reward > BalanceOf::<T>::from(0u32) {
 				// assuming our can_unreserve failed
 				// rollback ----
 				// It Should be enough to rollback following our initial unreserve
 				T::Currency::reserve(
+					currency_id,
 					&project_struct.owner_id,
 					amount.saturating_sub(_missing_reward),
 				)?;
@@ -334,27 +343,30 @@ pub mod pallet {
 		/// checks if the user's collateral is complete and sufficient for the rewarding process.
 		/// Assumed to be used in context where we'll be using this collateral balance immediately.
 		/// E.g for rewarding
-		pub fn check_collateral(who: &T::AccountId) -> bool {
+		pub fn check_collateral(currency_id: CurrencyIdOf<T>, who: &T::AccountId) -> bool {
 			let collateral = T::UserCollateral::get();
-			let existential_deposit = T::Currency::minimum_balance();
-			let reserve = T::Currency::reserved_balance(who);
+			let existential_deposit = T::Currency::minimum_balance(currency_id);
+			let reserve = T::Currency::reserved_balance(currency_id, who);
 			reserve >= (collateral.saturating_add(existential_deposit))
 		}
 		/// Release the collateral held by the account. Should only be called in the context of acceptance.
 		/// Does no checks. Assumes the state is as required.
 		///
 		/// **Requires** : check_collateral. Calls currency::unreserve
-		pub fn release_collateral(who: &T::AccountId) {
-			T::Currency::unreserve(&who, T::UserCollateral::get());
+		pub fn release_collateral(currency_id: CurrencyIdOf<T>, who: &T::AccountId) {
+			T::Currency::unreserve(currency_id, &who, T::UserCollateral::get());
 		}
 		/// Reward the user for their contribution to the project. Assumed to be called after acceptance.
 		///
 		/// **requires**: check_reward and check_collateral
+		/// # Note
+		/// Transfer when rewarding may lead to reaping of one of the involved accounts
 		pub fn reward_user(
 			who: &T::AccountId,
 			project: &mut ProjectAl<T>,
 			review: &ReviewAl<T>,
 		) -> DispatchResult {
+			let native_currency = T::GetNativeCurrencyId::get();
 			let reward = project.reward.clone();
 			let mut user = T::UsersOutlet::get_user_by_id(&who).ok_or(Error::<T>::NoneValue)?;
 			// Reward calc
@@ -381,10 +393,10 @@ pub mod pallet {
 			// Mutations - Fallible. Expect: All of these to rollback changes if they fail.
 			user.rank_points = user.rank_points.saturating_add(1);
 			Pallet::<T>::reward(project, reward_fraction)?;
-			T::Currency::transfer(&project.owner_id, who, reward_fraction, KeepAlive)?;
+			T::Currency::transfer(native_currency, &project.owner_id, who, reward_fraction)?;
 			T::UsersOutlet::update_user(&who, user)?;
 			// Mutations  - Infallible
-			Pallet::<T>::release_collateral(who);
+			Pallet::<T>::release_collateral(review.collateral_currency_id, who);
 			Ok(())
 		}
 		/// Check if a **user** can serve up the required collateral
@@ -392,15 +404,18 @@ pub mod pallet {
 		/// includes existential requirement for reserved balance if it doesn't already exist.
 		///
 		/// Returns the amount of collateral after performing checks
-		pub fn can_collateralise(id: &T::AccountId) -> Result<BalanceOf<T>, DispatchError> {
+		pub fn can_collateralise(
+			currency_id: CurrencyIdOf<T>,
+			id: &T::AccountId,
+		) -> Result<BalanceOf<T>, DispatchError> {
 			let mut reserve = T::UserCollateral::get();
 			// check if existential deposit already exists in reserve, add to balance to reserve if not
-			let existential_deposit = T::Currency::minimum_balance();
-			let reserved = T::Currency::reserved_balance(id);
+			let existential_deposit = T::Currency::minimum_balance(currency_id);
+			let reserved = T::Currency::reserved_balance(currency_id, id);
 			if (reserved % reserve) < existential_deposit {
 				reserve = reserve.saturating_add(existential_deposit);
 			}
-			let can_reserve = T::Currency::can_reserve(id, reserve);
+			let can_reserve = T::Currency::can_reserve(currency_id, id, reserve);
 			if can_reserve {
 				Ok(reserve)
 			} else {
@@ -411,8 +426,12 @@ pub mod pallet {
 		///
 		/// Assumes checks have already been made for the specified amount.
 		/// Requires `can_collateralise`
-		pub fn collateralise(id: &T::AccountId, reserve: BalanceOf<T>) -> DispatchResult {
-			T::Currency::reserve(&id, reserve)?;
+		pub fn collateralise(
+			collateral_currency_id: CurrencyIdOf<T>,
+			id: &T::AccountId,
+			reserve: BalanceOf<T>,
+		) -> DispatchResult {
+			T::Currency::reserve(collateral_currency_id, &id, reserve)?;
 			Ok(())
 		}
 
@@ -438,23 +457,30 @@ pub mod pallet {
 			<Projects<T>>::insert(index, project.clone());
 			project
 		}
-		/// Create a set of reviews from a set of ids as needed and places them in storage
-		pub fn initialize_reviews(acnt_ids: Vec<T::AccountId>) {
-			let proj = <NextProjectIndex<T>>::get().unwrap_or_default();
-			let project_id =  proj.saturating_sub(1);
-			let acnt_ids_iter = acnt_ids.iter();
+		/// Initialise the reviews from genesis by calling create_review with the args provided
+		pub fn initialize_reviews(acnts: Vec<(T::AccountId, CurrencyIdOf<T>)>) {
+			let next_proj = <NextProjectIndex<T>>::get().unwrap_or_default();
+			let project_id = next_proj.saturating_sub(1);
+			let acnts_iter = acnts.iter();
 			// intialize review contents with their ids
-			for (rev, id) in constants::project::REVS.iter().zip(acnt_ids_iter.clone()) {
+			for (rev, acnt) in constants::project::REVS.iter().zip(acnts_iter.clone()) {
+				let (id, currency_id) = acnt;
 				let dispatch = Pallet::<T>::create_review(
 					Origin::<T>::Signed(id.clone()).into(),
-					(rev.0, rev.1.to_vec().try_into().expect("Metadata should be within StringLimit")),
+					(
+						rev.0,
+						rev.1.to_vec().try_into().expect("Metadata should be within StringLimit"),
+					),
 					project_id,
+					currency_id.to_owned(),
 				);
 				assert_ok!(dispatch);
 			}
 			// Accept the reviews.
-			for (_, id) in constants::project::REVS.iter().zip(acnt_ids_iter){
-				let dispatch2 =Pallet::<T>::accept_review(Origin::<T>::Root.into(), id.clone(), project_id);
+			for (_, acnt) in constants::project::REVS.iter().zip(acnts_iter) {
+				let (id, _) = acnt;
+				let dispatch2 =
+					Pallet::<T>::accept_review(Origin::<T>::Root.into(), id.clone(), project_id);
 				assert_ok!(dispatch2);
 			}
 		}
@@ -465,9 +491,9 @@ pub mod pallet {
 		/// Get the parameters for the init projects function
 		pub init_projects: Vec<(Status, ReasonOf<T>)>,
 		/// Initial users to use to init projects.
-		/// All accounts used should be endowed with initial balance, atleast enough to handle reserve
+		/// All accounts used should be endowed with initial balance of the specified currencyId, atleast enough to handle reserve
 		/// Zip may mean users are matched up with projects by index
-		pub init_users: Vec<T::AccountId>,
+		pub init_users: Vec<(T::AccountId, CurrencyIdOf<T>)>,
 	}
 	/// By default a generic project or known projects will be shown - polkadot & sisters
 	#[cfg(feature = "std")]
@@ -483,19 +509,21 @@ pub mod pallet {
 		// Genesis build: Creates mock reviews for testing.
 		fn build(&self) {
 			// Create users.
-			let iter_users = (&self.init_users).iter();
+			let iter_users = (&self.init_users).iter().map(|acnt| acnt.0.clone());
 			for id in iter_users.clone() {
-				T::UsersOutlet::set_user(id, Default::default());
+				T::UsersOutlet::set_user(&id, Default::default());
 			}
 
 			let meta: Vec<BoundedVecOf<u8, T>> = constants::project::METADATA
 				.iter()
-				.map(|each| each.to_vec().try_into().expect("Metadata should be within StringLimit"))
+				.map(|each| {
+					each.to_vec().try_into().expect("Metadata should be within StringLimit")
+				})
 				.collect();
 			let init_projects_w_users: Vec<_> = (&self.init_projects)
 				.into_iter()
 				.zip(iter_users)
-				.map(|((s, r), accnt)| (accnt, s.clone(), r.clone()))
+				.map(|((s, r), accnt)| (accnt.clone(), s.clone(), r.clone()))
 				.collect();
 			let zipped = (init_projects_w_users).into_iter().zip(meta.iter());
 
@@ -504,18 +532,17 @@ pub mod pallet {
 				let (project_ref, meta_ref) = each;
 				let meta_cid = meta_ref.to_owned();
 				let (acnt, stat, reas) = project_ref.to_owned();
-				// Filter ids so generated reviews do not include project owner
-				let filtered_ids: Vec<_> = (&self.init_users)
+				// Filter acnts so generated reviews do not include project owner
+				let filtered_acnts: Vec<_> = (&self.init_users)
 					.iter()
-					.filter(|id| acnt.ne(id))
+					.filter(|(id, _)| acnt.ne(id))
 					.map(|long| long.clone())
 					.collect();
 
 				// create reviews and projects and store.
 				Pallet::<T>::initialize_project(acnt.clone(), meta_cid, stat, reas);
-				Pallet::<T>::initialize_reviews(filtered_ids);
+				Pallet::<T>::initialize_reviews(filtered_acnts);
 			}
-
 		}
 	}
 }

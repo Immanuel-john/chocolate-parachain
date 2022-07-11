@@ -1,21 +1,14 @@
-use frame_support::{
-	dispatch::DispatchResult,
-	sp_runtime::traits::Zero,
-	traits::{Get,tokens::Balance as BalanceTrait},
-	BoundedVec, RuntimeDebug,
-};
-use frame_system::Config;
-use scale_info::TypeInfo;
+use super::*;
+
 /// A simple u32
 pub type ProjectID = u32;
 /// Index for reviews , use to link to project
 pub type ReviewID = u64;
-use codec::{Decode, Encode, MaxEncodedLen};
 
 #[derive(
 	Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialOrd, Ord,
 )]
-pub struct Review<UserID, StringLen>
+pub struct Review<UserID, StringLen, CurrencyIdAlias>
 where
 	StringLen: Get<u32>,
 {
@@ -27,13 +20,13 @@ where
 	pub point_snapshot: u32,
 	/// Score of a review
 	pub review_score: u8,
+	/// Currency the user provided for collateral
+	pub collateral_currency_id: CurrencyIdAlias,
 }
 
 /// The metadata of a project.
 type MetaData<StringLen> = BoundedVec<u8, StringLen>;
 
-#[cfg(feature = "std")]
-pub use serde::{Deserialize, Serialize};
 
 /// The status of the proposal
 #[derive(
@@ -139,7 +132,9 @@ where
 	metadata: MetaData<StringLen>,
 	/// the status of the project's proposal in the council - default proposed.
 	pub proposal_status: ProposalStatus<StringLen>,
-	/// A reward value for the project ---------_switch to idea of named reserve hash - (default: Reward).
+	/// A reward value for the project.
+	/// Users are rewarded in native currency
+	/// Todo: Remove reward amount tracking here and simplify reward logic by using constant value
 	pub reward: Balance,
 	/// A sum of all the points of users who wrote a review for the project. Saturate when u32::MAX.
 	pub total_user_scores: u32,
@@ -178,14 +173,21 @@ pub trait ProjectIO<T: Config> {
 	type UserID;
 	type Balance: BalanceTrait;
 	type StringLimit: Get<u32>;
-	/// Checks:
-	/// If the projects' reward value reflects what is reserved, excluding existential value
+	/// Performs the necessary checks on the project's side to ensure that they can reward the user
+	/// At this instance
+	///
+	/// - checks if the project's advertised reward is same as reserved balance
+	/// - checks if the project has enough free balance to safely transfer reward after release to the user
 	fn check_reward(
 		project: &Project<Self::UserID, Self::Balance, Self::StringLimit>,
 	) -> DispatchResult;
-	/// Check if the project owner can offer up hardcoded amount as init.
+	/// Check if the project owner can offer up reward amount when intialising.
 	fn can_reward(project: &Self::UserID) -> bool;
 	/// Reserve an initial amount for use as reward
+	/// Reserve some reward and possibly + liveness req as we initialise the project
+	/// # Fallible
+	/// does no checks for ability to reserve.
+	/// (When safe, move from mut to immut)
 	fn reserve_reward(
 		project: &mut Project<Self::UserID, Self::Balance, Self::StringLimit>,
 	) -> DispatchResult;
@@ -197,23 +199,4 @@ pub trait ProjectIO<T: Config> {
 		project: &mut Project<Self::UserID, Self::Balance, Self::StringLimit>,
 		amount: Self::Balance,
 	) -> DispatchResult;
-}
-/// Easy way of differentaiting the two. We'll need this.
-#[derive(
-	Encode,
-	Decode,
-	Eq,
-	PartialEq,
-	Copy,
-	Clone,
-	RuntimeDebug,
-	TypeInfo,
-	MaxEncodedLen,
-	PartialOrd,
-	Ord,
-)]
-#[cfg_attr(feature = "std", derive(Deserialize, Serialize))]
-pub enum EntityKind {
-	Project,
-	User,
 }
