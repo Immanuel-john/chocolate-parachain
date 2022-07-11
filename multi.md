@@ -19,3 +19,10 @@ To integrate the multiassets pallet into chocolate with:
 * A simple extrinsic that unreserves the same generic asset in the template pallet, and test that it is unreserved as expected.
 * Both extrinsics will be paid in the native token, test that it fails if the user doesn't have sufficient balance.
 
+## Imbalances and deposits
+
+Method: https://github.com/open-web3-stack/open-runtime-module-library/blob/52ec52b733b3fc326d8e7104ff414d7e3c3b8b06/currencies/src/lib.rs#L659
+Not useful though. No minting. Define in genesis.
+```rs
+BasicReservableCurrency::deposit()
+```

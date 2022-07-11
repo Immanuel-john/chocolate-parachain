@@ -679,6 +679,14 @@ impl pallet_treasury::Config for Runtime {
 	type SpendFunds = ();
 	type MaxApprovals = MaxApprovals;
 }
+
+impl pallet_minting::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type TreasuryOutlet = Treasury;
+	type ApproveOrigin = ApproveOrigin;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -715,15 +723,15 @@ construct_runtime!(
 		TemplatePallet: pallet_template::{Pallet, Call, Storage, Event<T>}  = 40,
 		UsersModule: pallet_users::{Pallet, Call, Storage, Event<T>} =  43,
 		ChocolateModule: pallet_chocolate::{Pallet, Call, Config<T>, Storage, Event<T>} =  44,
+		MintingModule: pallet_minting::{Pallet, Call, Config<T>, Storage, Event<T>} =  48,
 		// TREASURY
-		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
-		Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
-		// 		elections implemented for council.
-		PhragmenElection: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
+		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>}  = 51,
+		Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} =  52,
+		PhragmenElection: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 53,
 
-		// Orml
-		Currencies: orml_currencies::{Pallet, Call} = 41,
-		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 42,
+		// Orml multitokens
+		Currencies: orml_currencies::{Pallet, Call} = 61,
+		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 62,
 	}
 );
 
@@ -744,6 +752,7 @@ mod benches {
 		[pallet_elections_phragmen, PhragmenElection]
 		[pallet_collective, Council]
 		[pallet_treasury, Treasury]
+		[pallet_minting, Minting]
 	);
 }
 

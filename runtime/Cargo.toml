@@ -27,6 +27,7 @@ static_assertions = "1.1.0"
 pallet-template = { path = "../pallets/template", default-features = false }
 pallet-chocolate = { path = "../pallets/chocolate", default-features = false }
 pallet-users = { path = "../pallets/users", default-features = false }
+pallet-minting = { path = "../pallets/minting", default-features = false }
 
 # ORML
 
@@ -145,6 +146,8 @@ std = [
 	"pallet-treasury/std",
     "pallet-collective/std",
     "pallet-elections-phragmen/std",
+	"pallet-minting/std",
+
 ]
 
 runtime-benchmarks = [
