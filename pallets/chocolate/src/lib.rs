@@ -113,6 +113,8 @@ pub mod pallet {
 		ReviewCreated(T::AccountId, ProjectID),
 		/// parameters [owner, project_id]
 		ReviewAccepted(T::AccountId, ProjectID),
+		/// Parameters [project_id]
+		ProjectAccepted(ProjectID),
 	}
 	// Errors inform users that something went wrong.
 	#[pallet::error]
@@ -148,7 +150,6 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Create a project
 		///  
-		/// - O(1).  
 		/// - Init: Index starts at 1
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,3))]
 		pub fn create_project(
@@ -260,6 +261,31 @@ pub mod pallet {
 			Self::deposit_event(Event::ReviewCreated(user_id, project_id));
 			Ok(())
 		}
+		
+		/// Moves a project to the accepted state. 
+		/// Must be called by Root-like (Council or CES).
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn accept_project(
+			origin: OriginFor<T>,
+			project_id: ProjectID,
+		) -> DispatchResult {
+			T::ApprovedOrigin::ensure_origin(origin)?;
+			// VALUES
+			let mut project = <Projects<T>>::get(project_id).ok_or(Error::<T>::NoProjectWithId)?;
+			let is_proposed = project.proposal_status.status.eq(&Status::Proposed);
+			// CHECKS
+			ensure!(is_proposed, Error::<T>::AcceptingNotProposed);
+			Pallet::<T>::check_reward(&project)?;
+			// MUTATIONS
+			project.proposal_status.status = Status::Accepted;
+			project.proposal_status.reason = Reason::PassedRequirements;
+
+			<Projects<T>>::mutate(project_id, |p| {
+				*p = Option::Some(project);
+			});
+			Self::deposit_event(Event::ProjectAccepted(project_id));
+			Ok(())
+		}
 	}
 
 	impl<T: Config> ProjectIO<T> for Pallet<T> {
@@ -308,14 +334,7 @@ pub mod pallet {
 			project_struct.reward = T::RewardCap::get();
 			Ok(())
 		}
-		/// * Releases an amount from the reward reserved with the project
-		/// Assumed to be called in the context of rewarding the user wherein amount
-		/// is the final reward calculated.
-		/// * **Does no checks**. Assumes specific state of review and project . i.e default Proposed and Accepted states respectively.
-		/// * Since unreserve doesn't have an expect block, if there is remaining balance, we assume error and rollback
-		///	 # Panics!
-		///  with expect if we can't rollback, and returns dispatch error for inconsistent reward.
-		/// **Requires** : check_reward , check_collateral, (caller) reward_user (In context of accept reward)
+
 		fn reward(project_struct: &mut ProjectAl<T>, amount: Self::Balance) -> DispatchResult {
 			let currency_id = T::GetNativeCurrencyId::get();
 			// MUTATIONS

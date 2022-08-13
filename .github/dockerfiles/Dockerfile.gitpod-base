@@ -21,18 +21,11 @@ ARG USER=gitpod
 ARG GROUP=gitpod
 USER ${USER}:${GROUP}
 
-RUN mkdir /home/${USER}/relay
-WORKDIR /home/${USER}/relay
-# Clone the Polkadot Repository
-# Build the relay chain Node
-# Checkout the proper commit
-# Check if the help page prints to ensure the node is built correctly
-ARG BIN="polkadot"
-RUN git clone https://github.com/paritytech/polkadot.git && \
-    cd polkadot && \
-    git checkout release-v0.9.24 && \ 
-    cargo build --release && \ 
-    ./target/release/${BIN} --help && \
-    find target -type f ! -name ${BIN} -exec rm {} +
+RUN mkdir -p /home/${USER}/relay/polkadot/target/release
+WORKDIR /home/${USER}/relay/polkadot/target/release
+
+# Download latest polkadot release
+ARG VER="v0.9.24"
+RUN wget https://github.com/paritytech/polkadot/releases/download/${VER}/polkadot && chmod +x ./polkadot
 # Ease:
-ENV POLKADOT_BIN=~/relay/polkadot/target/release/polkadot
+ENV POLKADOT_BIN=/home/${USER}/relay/polkadot/target/release/polkadot
