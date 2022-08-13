@@ -1,5 +1,5 @@
 [package]
-name = "pallet-template"
+name = "pallet-minting"
 authors = ["Anonymous"]
 description = "FRAME pallet template for defining custom runtime logic."
 version = "0.1.0"
@@ -20,10 +20,6 @@ frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-
 frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 frame-system = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 
-# ORML
-orml-traits = { git="https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
-orml-utilities = { git="https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
-
 
 [dev-dependencies]
 serde = { version = "1.0.132" }
@@ -33,9 +29,6 @@ sp-core = { git = "https://github.com/paritytech/substrate", default-features = 
 sp-io = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 
-# ORML
-orml-currencies = {git = "https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
-orml-tokens = { git="https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
 
 [features]
 default = ["std"]
@@ -46,9 +39,5 @@ std = [
 	"frame-benchmarking/std",
 	"frame-support/std",
 	"frame-system/std",
-	"orml-traits/std",
-	"orml-utilities/std",
-	"orml-currencies/std",
-	"orml-tokens/std",
 ]
 try-runtime = [ "frame-support/try-runtime" ]

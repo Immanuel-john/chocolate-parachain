@@ -1,5 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use orml_traits::{MultiCurrency, MultiReservableCurrency,arithmetic::Zero, BalanceStatus};
+use orml_utilities::with_transaction_result;
+
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://docs.substrate.io/v3/runtime/frame>
@@ -14,9 +17,17 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+
+type BalanceOf<T> =
+	<<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
+type CurrencyIdOf<T> =
+	<<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::CurrencyId;
+
+
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
+	use super::*;
+	use frame_support::{dispatch::DispatchResultWithPostInfo,ensure, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -24,6 +35,8 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		/// Currency
+		type Currency: MultiReservableCurrency<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -55,6 +68,8 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+		/// Insufficeint balance to unreserve
+		InsufficientBalance,
 	}
 
 	#[pallet::hooks]
@@ -82,7 +97,46 @@ pub mod pallet {
 			// Return a successful DispatchResultWithPostInfo
 			Ok(().into())
 		}
+		/// Reserves some amount of generic assets for the roigin
+		#[pallet::weight(10_000)]
+		pub fn test_res (origin:  OriginFor<T>, currency_id: CurrencyIdOf<T>, amount: BalanceOf<T>) ->DispatchResultWithPostInfo{
+			let who = ensure_signed(origin)?;
+			T::Currency::reserve(currency_id,&who, amount)?;
+			Ok(().into())
+		}
+		/// UnReserves some amount of generic assets for the roigin
+		#[pallet::weight(10_000)]
+		pub fn test_unres (origin:  OriginFor<T>, currency_id: CurrencyIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			with_transaction_result(|| {
+			
+			let remainder = T::Currency::unreserve(currency_id,&who, amount);
+			ensure!(remainder.is_zero(),Error::<T>::InsufficientBalance);
 
+			Ok(().into())
+		}) 
+
+		}
+
+		/// UnReserves some amount of generic assets for the origin and transfers it to some other account. In choc, this is same account.
+		/// Pure unreserve could also work. Just showing that this is possible.
+		#[pallet::weight(10_000)]
+		pub fn test_unres_to (origin: OriginFor<T>, currency_id: CurrencyIdOf<T>,to: T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			// A transaction can either succeed and commit, or fail and rollback. This helps avoid prelim. checks. Tradeoffs?
+			with_transaction_result(|| {
+				let remainder = T::Currency::repatriate_reserved(currency_id,&who, &to, amount, BalanceStatus::Free)?;
+				
+				// Never use this check with the same account, else transaction will fail with remainder balance returned.
+				// Use unreserve instead
+				ensure!(remainder.is_zero(),Error::<T>::InsufficientBalance);
+
+				Ok(().into())
+			}) 
+
+			
+		}
 		/// An example dispatchable that may throw a custom error.
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn cause_error(origin: OriginFor<T>) -> DispatchResultWithPostInfo {

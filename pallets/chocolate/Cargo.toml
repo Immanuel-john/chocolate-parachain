@@ -1,54 +1,63 @@
 [package]
-name = "pallet-template"
-authors = ["Anonymous"]
-description = "FRAME pallet template for defining custom runtime logic."
-version = "0.1.0"
-license = "Unlicense"
-homepage = "https://substrate.io"
-repository = "https://github.com/paritytech/substrate/"
-edition = "2021"
+authors = ['Kresna SHA888 <https://github.com/SHA888>']
+description = 'Substrate FRAME chocolate pallet for defining custom runtime logic.'
+edition = '2021'
+homepage = ''
+license = 'Unlicense'
+name = 'pallet-chocolate'
+publish = false
+repository = 'https://github.com/Chocolate-Project/chocolate-node'
+version = '0.1.0'
+readme = 'README.md'
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+serde = { version = "1.0.132", optional=true }
 codec = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"], default-features = false }
 scale-info = { version = "2.0.0", default-features = false, features = ["derive"] }
+
+# Local
+chocolate-primitives = {  path="../../primitives",  default-features = false }
 
 # Substrate
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true, branch = "polkadot-v0.9.24" }
 frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 frame-system = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
+
 
 # ORML
 orml-traits = { git="https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
 orml-utilities = { git="https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
 
-
 [dev-dependencies]
-serde = { version = "1.0.132" }
 
 # Substrate
 sp-core = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 sp-io = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
+pallet-treasury = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 
-# ORML
-orml-currencies = {git = "https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
-orml-tokens = { git="https://github.com/open-web3-stack/open-runtime-module-library",  default-features = false,  branch="polkadot-v0.9.24" }
+# Chocolate. For Tests.
+pallet-users = {  path="../users",  default-features = false }
 
 [features]
-default = ["std"]
-runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
+default = ['std']
+runtime-benchmarks = ['frame-benchmarking']
 std = [
-	"codec/std",
-	"scale-info/std",
-	"frame-benchmarking/std",
-	"frame-support/std",
-	"frame-system/std",
-	"orml-traits/std",
-	"orml-utilities/std",
-	"orml-currencies/std",
-	"orml-tokens/std",
+    'serde',
+    'codec/std',
+    'sp-std/std',
+    'frame-support/std',
+    'frame-system/std',
+    'pallet-treasury/std',
+    'pallet-balances/std',
+    'frame-benchmarking/std',
+    # added
+    'chocolate-primitives/std',
+    'pallet-users/std',
 ]
-try-runtime = [ "frame-support/try-runtime" ]
+try-runtime = ['frame-support/try-runtime']

@@ -1,11 +1,11 @@
 use cumulus_primitives_core::ParaId;
-use parachain_template_runtime::{AccountId, AuraId, Signature, EXISTENTIAL_DEPOSIT};
+use parachain_template_runtime::{AccountId, AuraId, Signature, EXISTENTIAL_DEPOSIT, CurrencyId, UNIT, Balance};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
-
+use chocolate_primitives::projects::{Status,Reason};
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec =
 	sc_service::GenericChainSpec<parachain_template_runtime::GenesisConfig, Extensions>;
@@ -119,7 +119,7 @@ pub fn development_config() -> ChainSpec {
 pub fn local_testnet_config() -> ChainSpec {
 	// Give your base currency a unit name and decimal places
 	let mut properties = sc_chain_spec::Properties::new();
-	properties.insert("tokenSymbol".into(), "UNIT".into());
+	properties.insert("tokenSymbol".into(), "CHOC".into());
 	properties.insert("tokenDecimals".into(), 12.into());
 	properties.insert("ss58Format".into(), 42.into());
 
@@ -182,6 +182,11 @@ fn testnet_genesis(
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 ) -> parachain_template_runtime::GenesisConfig {
+	let num_endowed_accounts = endowed_accounts.len();
+	
+	const ENDOWMENT: Balance = 10u128.pow(9) * UNIT;
+	const STASH: Balance = ENDOWMENT / 1000;
+
 	parachain_template_runtime::GenesisConfig {
 		system: parachain_template_runtime::SystemConfig {
 			code: parachain_template_runtime::WASM_BINARY
@@ -189,7 +194,7 @@ fn testnet_genesis(
 				.to_vec(),
 		},
 		balances: parachain_template_runtime::BalancesConfig {
-			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 60)).collect(),
+			balances: endowed_accounts.iter().cloned().map(|k| (k, ENDOWMENT)).collect(),
 		},
 		parachain_info: parachain_template_runtime::ParachainInfoConfig { parachain_id: id },
 		collator_selection: parachain_template_runtime::CollatorSelectionConfig {
@@ -217,5 +222,69 @@ fn testnet_genesis(
 		polkadot_xcm: parachain_template_runtime::PolkadotXcmConfig {
 			safe_xcm_version: Some(SAFE_XCM_VERSION),
 		},
+
+		tokens: parachain_template_runtime::TokensConfig {
+			balances: endowed_accounts
+			.iter()
+			.flat_map(|x| {
+				vec![
+					(x.clone(), CurrencyId::DOT, ENDOWMENT),
+					(x.clone(), CurrencyId::BTC, ENDOWMENT),
+				]
+			})
+			.collect(),
+			
+		},
+		// this isn't dynamic as we do not know the data passed.
+		chocolate_module: parachain_template_runtime::ChocolateModuleConfig {
+			init_projects: {
+				let ps_req = Reason::PassedRequirements;
+				vec![
+					(Status::Accepted, ps_req.clone()),
+					(Status::Rejected, Reason::Malicious),
+					(Status::Accepted, ps_req.clone()),
+					(Status::Accepted, ps_req.clone()),
+					(Status::Proposed, ps_req.clone()),
+					(Status::Accepted, ps_req.clone()),
+					(Status::Accepted, ps_req.clone()),
+					(Status::Accepted, ps_req.clone()),
+				]
+			},
+			init_users: {
+				// use a static list for accounts
+				// Update init_projects and token alloc in multiassets when updating this.
+				// FIXME: Panics when this is anything other than Native
+				vec![
+					(get_account_id_from_seed::<sr25519::Public>("Alice"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Bob"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Charlie"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Dave"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Eve"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Ferdie"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Alice//stash"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Bob//stash"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Charlie//stash"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Dave//stash"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Eve//stash"), CurrencyId::Native),
+					(get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"), CurrencyId::Native),
+				]
+			},
+		},
+		phragmen_election: parachain_template_runtime::PhragmenElectionConfig {
+			// configure all members to have an initial 'stash' backing, or elect them
+			// - These map to our default members of Council Collective - If not changed, council remains constant for n period
+			// Elect only half endowed accounts initially - Alice and Bob  - Backed with 1M each - Based on 12 Decimal choc.
+			members: endowed_accounts
+				.iter()
+				.take((num_endowed_accounts + 1) / 2)
+				.cloned()
+				.map(|member| (member, STASH))
+				.collect(),
+		},
+		council: parachain_template_runtime::CouncilConfig::default(),
+		treasury: Default::default(),
+		minting_module: parachain_template_runtime::MintingModuleConfig {
+			init_mint: 5000 * UNIT
+		}
 	}
 }

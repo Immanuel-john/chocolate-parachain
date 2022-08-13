@@ -9,6 +9,12 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 pub mod xcm_config;
 
+/// Asset config options. As used on litentry. Will Revisit for xcm
+pub mod asset_config;
+
+use asset_config::DustRemovalWhitelist;
+use codec::{Decode, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -16,17 +22,17 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature,
+	ApplyExtrinsicResult, MultiSignature, Percent,
 };
-
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use static_assertions::const_assert;
 
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::Everything,
+	traits::{EnsureOneOf, Everything, Get, LockIdentifier},
 	weights::{
 		constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
 		WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
@@ -38,16 +44,23 @@ use frame_system::{
 	EnsureRoot,
 };
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-pub use sp_runtime::{MultiAddress, Perbill, Permill};
+pub use sp_runtime::{MultiAddress, Perbill, Permill, RuntimeDebug};
 use xcm_config::{XcmConfig, XcmOriginToTransactDispatchOrigin};
+
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
 // Polkadot imports
-use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+use polkadot_runtime_common::{impls::DealWithFees, BlockHashCount, SlowAdjustingFeeUpdate};
 
 use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
+
+// Orml imports
+use orml_currencies::BasicCurrencyAdapter;
+use orml_traits::parameter_type_with_key;
 
 // XCM Imports
 use xcm::latest::prelude::BodyId;
@@ -144,6 +157,53 @@ impl WeightToFeePolynomial for WeightToFee {
 	}
 }
 
+#[derive(
+	Encode,
+	Decode,
+	Eq,
+	PartialEq,
+	Copy,
+	Clone,
+	RuntimeDebug,
+	TypeInfo,
+	MaxEncodedLen,
+	PartialOrd,
+	Ord,
+)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum CurrencyId {
+	Native,
+	DOT,
+	KSM,
+	BTC,
+}
+
+/// String Limit, currently configured to: 254 full-length (4-byte) utf-8 encoded chars.
+pub const STRING_LIMIT_VALUE: u32 = 1_016;
+/// The maximum length of a name or symbol stored on-chain.
+#[derive(
+	Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo, MaxEncodedLen, PartialOrd, Ord,
+)]
+#[cfg_attr(feature = "std", derive(Deserialize, Serialize))]
+pub struct StringLimit;
+
+impl Get<u32> for StringLimit {
+	fn get() -> u32 {
+		STRING_LIMIT_VALUE
+	}
+}
+
+// Note: This could be later moved into a constants file - Separating time and currency, and importing primitives from node-primitives. Or here.
+
+pub const fn deposit(items: u32, bytes: u32) -> Balance {
+	items as Balance * 15 * UNIT + (bytes as Balance) * 6 * UNIT
+}
+
+pub type Amount = i128;
+
+/// Identifier for a named reserve in orml tokens
+pub type ReserveIdentifier = [u8; 8];
+
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
@@ -197,6 +257,7 @@ pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
 
 // Unit = the base number of indivisible units for balances
+pub const HECTOUNIT: Balance = 100 * UNIT;
 pub const UNIT: Balance = 1_000_000_000_000;
 pub const MILLIUNIT: Balance = 1_000_000_000;
 pub const MICROUNIT: Balance = 1_000_000;
@@ -250,6 +311,11 @@ parameter_types! {
 		.build_or_panic();
 	pub const SS58Prefix: u16 = 42;
 }
+
+type MoreThanHalfCouncil = EnsureOneOf<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
+>;
 
 // Configure FRAME pallets to include in runtime.
 
@@ -353,7 +419,8 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
+	type OnChargeTransaction =
+		pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
 	type WeightToFee = WeightToFee;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -454,6 +521,170 @@ impl pallet_collator_selection::Config for Runtime {
 /// Configure the pallet template in pallets/template.
 impl pallet_template::Config for Runtime {
 	type Event = Event;
+	type Currency = Currencies;
+}
+
+impl orml_tokens::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type Amount = Amount;
+	type CurrencyId = CurrencyId;
+	type WeightInfo = ();
+	type ExistentialDeposits = ExistentialDeposits;
+	type OnDust = ();
+	type OnNewTokenAccount = ();
+	type OnKilledTokenAccount = ();
+	// Shared with balances.
+	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = ReserveIdentifier;
+	type DustRemovalWhitelist = DustRemovalWhitelist;
+}
+
+parameter_type_with_key! {
+	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+		match _currency_id {
+			CurrencyId::Native => EXISTENTIAL_DEPOSIT,
+			_ => EXISTENTIAL_DEPOSIT
+		}
+	};
+}
+
+parameter_types! {
+	pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
+}
+
+impl orml_currencies::Config for Runtime {
+	type MultiCurrency = Tokens;
+	type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type WeightInfo = ();
+}
+
+parameter_types! {
+	pub const RewardCap: Balance = 50 * HECTOUNIT;
+	pub const UserCollateral: Balance = 10 * HECTOUNIT;
+}
+/// Configure the pallet-chocolate in pallets/chocolate.
+impl pallet_chocolate::Config for Runtime {
+	type Event = Event;
+	type ApprovedOrigin = ApproveOrigin;
+	type Currency = Currencies;
+	type RewardCap = RewardCap;
+	type UsersOutlet = UsersModule;
+	type UserCollateral = UserCollateral;
+	type StringLimit = StringLimit;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
+}
+/// Configure the pallet-users in pallets/users.
+impl pallet_users::Config for Runtime {
+	type Event = Event;
+}
+
+// Configure the council and its features
+parameter_types! {
+	pub const CouncilMotionDuration: BlockNumber = 5 * DAYS;
+	pub const CouncilMaxProposals: u32 = 100;
+	pub const CouncilMaxMembers: u32 = 100;
+}
+
+type CouncilCollective = pallet_collective::Instance1;
+impl pallet_collective::Config<CouncilCollective> for Runtime {
+	type Origin = Origin;
+	type Proposal = Call;
+	type Event = Event;
+	type MotionDuration = CouncilMotionDuration;
+	type MaxProposals = CouncilMaxProposals;
+	type MaxMembers = CouncilMaxMembers;
+	type DefaultVote = pallet_collective::PrimeDefaultVote;
+	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+}
+
+// council election method configuration
+parameter_types! {
+	pub const CandidacyBond: Balance = 10 * HECTOUNIT;
+	// 1 storage item created, key size is 32 bytes, value size is 16+16.
+	pub const VotingBondBase: Balance = deposit(1, 64);
+	// additional data per vote is 32 bytes (account id).
+	pub const VotingBondFactor: Balance = deposit(0, 32);
+	pub const TermDuration: BlockNumber = 7 * DAYS;
+	pub const DesiredMembers: u32 = 13;
+	pub const DesiredRunnersUp: u32 = 7;
+	pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
+}
+
+// Make sure that there are no more than `MaxMembers` members elected via elections-phragmen.
+const_assert!(DesiredMembers::get() <= CouncilMaxMembers::get());
+
+impl pallet_elections_phragmen::Config for Runtime {
+	type Event = Event;
+	type PalletId = ElectionsPhragmenPalletId;
+	type Currency = Balances;
+	type ChangeMembers = Council;
+	// NOTE: this implies that council's genesis members cannot be set directly and must come from
+	// this module. - Genesis election=Council
+	type InitializeMembers = Council;
+	type CurrencyToVote = frame_support::traits::U128CurrencyToVote;
+	type CandidacyBond = CandidacyBond;
+	type VotingBondBase = VotingBondBase;
+	type VotingBondFactor = VotingBondFactor;
+	type LoserCandidate = Treasury;
+	type KickedMember = Treasury;
+	type DesiredMembers = DesiredMembers;
+	type DesiredRunnersUp = DesiredRunnersUp;
+	type TermDuration = TermDuration;
+	type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
+}
+
+// treasury config. To-Do: Impl SpendFund trait on reviews and give treasury money on start.
+parameter_types! {
+	pub const ProposalBond: Permill = Permill::from_percent(5);
+	pub const ProposalBondMinimum: Balance = 1 * HECTOUNIT;
+	pub const ProposalBondMaximum: Balance = 5 * HECTOUNIT;
+	pub const SpendPeriod: BlockNumber = 1 * DAYS;
+	pub const Burn: Permill = Permill::from_percent(50);
+	pub const TipCountdown: BlockNumber = 1 * DAYS;
+	pub const TipFindersFee: Percent = Percent::from_percent(20);
+	pub const TipReportDepositBase: Balance = 1 * HECTOUNIT;
+	pub const DataDepositPerByte: Balance = 1 * UNIT;
+	pub const BountyDepositBase: Balance = 1 * HECTOUNIT;
+	pub const BountyDepositPayoutDelay: BlockNumber = 1 * DAYS;
+	pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
+	pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
+	pub const MaximumReasonLength: u32 = 16384;
+	pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
+	pub const BountyValueMinimum: Balance = 5 * HECTOUNIT;
+	pub const MaxApprovals: u32 = 100;
+}
+
+type ApproveOrigin = EnsureOneOf<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 5>,
+>;
+
+impl pallet_treasury::Config for Runtime {
+	type Currency = Balances;
+	type ApproveOrigin = ApproveOrigin;
+	type RejectOrigin = MoreThanHalfCouncil;
+	type Event = Event;
+	type OnSlash = Treasury;
+	type ProposalBond = ProposalBond;
+	type ProposalBondMinimum = ProposalBondMinimum;
+	type ProposalBondMaximum = ProposalBondMaximum;
+	type SpendPeriod = SpendPeriod;
+	type Burn = Burn;
+	type PalletId = TreasuryPalletId;
+	type BurnDestination = ();
+	type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
+	type SpendFunds = ();
+	type MaxApprovals = MaxApprovals;
+}
+
+impl pallet_minting::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type TreasuryOutlet = Treasury;
+	type ApproveOrigin = ApproveOrigin;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -488,8 +719,19 @@ construct_runtime!(
 		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 
-		// Template
+		// Chocolate
 		TemplatePallet: pallet_template::{Pallet, Call, Storage, Event<T>}  = 40,
+		UsersModule: pallet_users::{Pallet, Call, Storage, Event<T>} =  41,
+		ChocolateModule: pallet_chocolate::{Pallet, Call, Config<T>, Storage, Event<T>} =  42,
+		MintingModule: pallet_minting::{Pallet, Call, Config<T>, Storage, Event<T>} =  43,
+		// TREASURY
+		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>}  = 50,
+		Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} =  51,
+		PhragmenElection: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 52,
+
+		// Orml multitokens
+		Currencies: orml_currencies::{Pallet, Call} = 60,
+		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 61,
 	}
 );
 
@@ -506,6 +748,11 @@ mod benches {
 		[pallet_timestamp, Timestamp]
 		[pallet_collator_selection, CollatorSelection]
 		[cumulus_pallet_xcmp_queue, XcmpQueue]
+		[pallet_chocolate, ChocolateModule]
+		[pallet_elections_phragmen, PhragmenElection]
+		[pallet_collective, Council]
+		[pallet_treasury, Treasury]
+		[pallet_minting, Minting]
 	);
 }
 
