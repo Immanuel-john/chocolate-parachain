@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run node1
-./target/debug/parachain-collator \
+./target/release/parachain-collator \
 --alice \
 --collator \
 --force-authoring \
