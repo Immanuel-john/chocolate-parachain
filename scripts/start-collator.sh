@@ -8,6 +8,7 @@
 --chain ch_spec/rococo-local-parachain-2000-raw.json \
 --base-path /tmp/parachain/alice \
 --port 40333 \
+--rpc-cors all \
 --ws-port 8844 \
 -- \
 --execution wasm \

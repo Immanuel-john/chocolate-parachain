@@ -527,41 +527,8 @@ pub mod pallet {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		// Genesis build: Creates mock reviews for testing.
 		fn build(&self) {
-			// Create users.
-			let iter_users = (&self.init_users).iter().map(|acnt| acnt.0.clone());
-			for id in iter_users.clone() {
-				T::UsersOutlet::set_user(&id, Default::default());
-			}
-
-			let meta: Vec<BoundedVecOf<u8, T>> = constants::project::METADATA
-				.iter()
-				.map(|each| {
-					each.to_vec().try_into().expect("Metadata should be within StringLimit")
-				})
-				.collect();
-			let init_projects_w_users: Vec<_> = (&self.init_projects)
-				.into_iter()
-				.zip(iter_users)
-				.map(|((s, r), accnt)| (accnt.clone(), s.clone(), r.clone()))
-				.collect();
-			let zipped = (init_projects_w_users).into_iter().zip(meta.iter());
-
-			// create project from associated metadata in zip.
-			for each in zipped {
-				let (project_ref, meta_ref) = each;
-				let meta_cid = meta_ref.to_owned();
-				let (acnt, stat, reas) = project_ref.to_owned();
-				// Filter acnts so generated reviews do not include project owner
-				let filtered_acnts: Vec<_> = (&self.init_users)
-					.iter()
-					.filter(|(id, _)| acnt.ne(id))
-					.map(|long| long.clone())
-					.collect();
-
-				// create reviews and projects and store.
-				Pallet::<T>::initialize_project(acnt.clone(), meta_cid, stat, reas);
-				Pallet::<T>::initialize_reviews(filtered_acnts);
-			}
+			// FIXME
+			// Genesis build has been removed. See https://github.com/chocolatenetwork/chocolate-parachain/pull/10. It is now a node script at https://github.com/chocolatenetwork/choc-js
 		}
 	}
 }
