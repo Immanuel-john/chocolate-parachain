@@ -144,6 +144,8 @@ pub mod pallet {
 		CheckedDivisionFailed,
 		/// Review score is out of range 1-5
 		ReviewScoreOutOfRange,
+		/// Native token cannot be used as collateral.
+		NativeCollateral,
 	}
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
@@ -185,12 +187,14 @@ pub mod pallet {
 			collateral_currency_id: CurrencyIdOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			let native_id =  T::GetNativeCurrencyId::get();
 			// CHECKS & Inits
 			let mut this_project =
 				<Projects<T>>::get(project_id).ok_or(Error::<T>::NoProjectWithId)?;
 			ensure!(!<Reviews<T>>::contains_key(&who, project_id), Error::<T>::DuplicateReview);
 			ensure!(this_project.owner_id.ne(&who), Error::<T>::OwnerReviewedProject);
 			ensure!(review_meta.0 <= 5 && review_meta.0 >= 1, Error::<T>::ReviewScoreOutOfRange);
+			ensure!( collateral_currency_id != native_id, Error::<T>::NativeCollateral);
 			let reserve = Pallet::<T>::can_collateralise(collateral_currency_id, &who)?;
 			// Fallible MUTATIONS
 			Pallet::<T>::collateralise(collateral_currency_id, &who, reserve)?;
@@ -527,41 +531,8 @@ pub mod pallet {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		// Genesis build: Creates mock reviews for testing.
 		fn build(&self) {
-			// Create users.
-			let iter_users = (&self.init_users).iter().map(|acnt| acnt.0.clone());
-			for id in iter_users.clone() {
-				T::UsersOutlet::set_user(&id, Default::default());
-			}
-
-			let meta: Vec<BoundedVecOf<u8, T>> = constants::project::METADATA
-				.iter()
-				.map(|each| {
-					each.to_vec().try_into().expect("Metadata should be within StringLimit")
-				})
-				.collect();
-			let init_projects_w_users: Vec<_> = (&self.init_projects)
-				.into_iter()
-				.zip(iter_users)
-				.map(|((s, r), accnt)| (accnt.clone(), s.clone(), r.clone()))
-				.collect();
-			let zipped = (init_projects_w_users).into_iter().zip(meta.iter());
-
-			// create project from associated metadata in zip.
-			for each in zipped {
-				let (project_ref, meta_ref) = each;
-				let meta_cid = meta_ref.to_owned();
-				let (acnt, stat, reas) = project_ref.to_owned();
-				// Filter acnts so generated reviews do not include project owner
-				let filtered_acnts: Vec<_> = (&self.init_users)
-					.iter()
-					.filter(|(id, _)| acnt.ne(id))
-					.map(|long| long.clone())
-					.collect();
-
-				// create reviews and projects and store.
-				Pallet::<T>::initialize_project(acnt.clone(), meta_cid, stat, reas);
-				Pallet::<T>::initialize_reviews(filtered_acnts);
-			}
+			// FIXME
+			// Genesis build has been removed. See https://github.com/chocolatenetwork/chocolate-parachain/pull/10. It is now a node script at https://github.com/chocolatenetwork/choc-js
 		}
 	}
 }

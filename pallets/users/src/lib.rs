@@ -64,7 +64,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			ensure!(!Users::<T>::contains_key(&who), Error::<T>::UserAlreadyExists);
-			<Users<T>>::insert(&who, User { rank_points: 0, project_id: Option::None });
+			<Users<T>>::insert(&who, User { rank_points: 1, project_id: Option::None });
 
 			Self::deposit_event(Event::UserCreated(who));
 

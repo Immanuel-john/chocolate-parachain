@@ -253,7 +253,7 @@ fn testnet_genesis(
 			init_users: {
 				// use a static list for accounts
 				// Update init_projects and token alloc in multiassets when updating this.
-				// FIXME: Panics when this is anything other than Native
+				// FIXME: Panics when this is anything other than Native with the old genesis config removed at ... ,
 				vec![
 					(get_account_id_from_seed::<sr25519::Public>("Alice"), CurrencyId::Native),
 					(get_account_id_from_seed::<sr25519::Public>("Bob"), CurrencyId::Native),
