@@ -144,6 +144,8 @@ pub mod pallet {
 		CheckedDivisionFailed,
 		/// Review score is out of range 1-5
 		ReviewScoreOutOfRange,
+		/// Native token cannot be used as collateral.
+		NativeCollateral,
 	}
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
@@ -185,12 +187,14 @@ pub mod pallet {
 			collateral_currency_id: CurrencyIdOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			let native_id =  T::GetNativeCurrencyId::get();
 			// CHECKS & Inits
 			let mut this_project =
 				<Projects<T>>::get(project_id).ok_or(Error::<T>::NoProjectWithId)?;
 			ensure!(!<Reviews<T>>::contains_key(&who, project_id), Error::<T>::DuplicateReview);
 			ensure!(this_project.owner_id.ne(&who), Error::<T>::OwnerReviewedProject);
 			ensure!(review_meta.0 <= 5 && review_meta.0 >= 1, Error::<T>::ReviewScoreOutOfRange);
+			ensure!( collateral_currency_id != native_id, Error::<T>::NativeCollateral);
 			let reserve = Pallet::<T>::can_collateralise(collateral_currency_id, &who)?;
 			// Fallible MUTATIONS
 			Pallet::<T>::collateralise(collateral_currency_id, &who, reserve)?;
