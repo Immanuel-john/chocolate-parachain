@@ -26,16 +26,84 @@ A FRAME-based [Substrate](https://www.substrate.io/) parachain, ready for fighti
 ## Getting Started
 
 Follow the steps below to get started with the Chocolate Parachain, or get it up and running right from your browser
-in just a few clicks using [Playground](https://playground.substrate.dev/) :hammer_and_wrench:
+in just a few clicks using [Gitpod](#using-gitpod) :hammer_and_wrench:
 
-### Using Nix
+### Using Gitpod
 
-Install [nix](https://nixos.org/) and optionally [direnv](https://github.com/direnv/direnv) and [lorri](https://github.com/target/lorri) for a fully plug
-and play experience for setting up the development environment. To get all the correct dependencies activate direnv `direnv allow` and lorri `lorri shell`.
+You can open this repository in gitpod and wait for the next steps to be completed for you
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#/https://github.com/chocolatenetwork/chocolate-parachain)
+
 
 ### Rust Setup
 
 First, complete the [basic Rust setup instructions](./docs/rust-setup.md).
+
+### Relay setup
+
+Use the `prep-relay` script we use on gitpod
+
+> Note: The setup script currently assumes you have the polkadot relay binary (v0.9.24) at `~/relay/polkadot/target/release/polkadot`
+
+```bash
+# Download the polkadot binary to ~/relay/polkadot/target/release/polkadot
+mkdir -p ~/relay/polkadot/target/release
+cd ~/relay/polkadot/target/release
+VER="v0.9.24"
+wget https://github.com/paritytech/polkadot/releases/download/${VER}/polkadot && chmod +x ./polkadot
+
+# Back in the folder you extracted this repo to, Run only the buildSpec function to avoid building an image
+bash ./scripts/prep-relay.sh buildSpec
+```
+
+### Parachain setup
+
+Use `cargo` to build the parachain in **release** mode
+
+```
+    cargo build --release
+```
+> Note, if you build the debug target using `cargo build`, you may run into an issue with slow block times
+
+```bash
+
+# If you're only running the binary, you can cleanup the target directory:
+find target/release -type f ! -name parachain-collator -exec rm {} +
+```
+
+Export the chain spec, genesis header and validation code to [ch_spec](./ch_spec)
+
+
+```bash
+bash ./scripts/prep-collator.sh exportChainSpec
+```
+
+### Testnet
+
+Start alice
+
+```bash
+bash ./scripts/start-relay.sh alice
+```
+
+Start relay bob
+
+
+```bash
+bash ./scripts/start-relay.sh alice
+```
+
+Then Start a collator
+
+
+```bash
+bash ./scripts/start-collator.sh
+```
+
+Follow the steps from [substrate-docs](https://docs.substrate.io/tutorials/connect-other-chains/connect-a-local-parachain/#reserve-a-unique-identifier) to register the parachain
+
+ 
+> Note: Your Paraid is 2000, and The genesis header and validation code should be in [ch_spec](./ch_spec)
 
 ### Run
 
@@ -60,7 +128,7 @@ Once the project has been built, the following command can be used to explore al
 subcommands:
 
 ```sh
-./target/release/chocolate -h
+./target/release/parachain-collator -h
 ```
 
 ## Run
@@ -74,19 +142,19 @@ node.
 This command will start the single-node development chain with persistent state:
 
 ```bash
-./target/release/chocolate --dev
+./target/release/parachain-collator --dev
 ```
 
 Purge the development chain's state:
 
 ```bash
-./target/release/chocolate purge-chain --dev
+./target/release/parachain-collator purge-chain --dev
 ```
 
 Start the development chain with detailed logging:
 
 ```bash
-RUST_BACKTRACE=1 ./target/release/chocolate -ldebug --dev
+RUST_BACKTRACE=1 ./target/release/parachain-collator -ldebug --dev
 ```
 
 ### Connect with Polkadot-JS Apps Front-end
@@ -147,7 +215,7 @@ After the node has been [built](#build), refer to the embedded documentation to 
 capabilities and configuration parameters that it exposes:
 
 ```shell
-./target/release/chocolate --help
+./target/release/parachain-collator --help
 ```
 
 ### Runtime
@@ -196,7 +264,6 @@ A FRAME pallet is compromised of a number of blockchain primitives:
 
 ### primitives
 
-- This folder is customised for chocolate with packages that aren't part of runtime but shared across different pallets. Right now the package name is the same as the folder name for the packages inside primitives. This is simply for ease of use because it sort of gets confusing not knowing how packages and paths are different and trying to modularise things.
-- `chocolate-` is prefixed to the packages here for uniqueness, although we probably won't be publishing.
+- This folder is customised for chocolate with modules that aren't part of runtime but shared across different pallets. It's a single primitives package that is imported as needed.
 
 <!-- Sounds good, or should we prioritise cleanness in package names? -->
