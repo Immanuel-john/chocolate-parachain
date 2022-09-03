@@ -1,22 +1,268 @@
-# Substrate Cumulus Parachain Template
+<div align="center">
+<img src="https://avatars.githubusercontent.com/u/89528034?s=400&u=37141744cd31c4d2bb349b18627f3903ab7eac34&v=4">
+</div>
 
-A new [Cumulus](https://github.com/paritytech/cumulus/)-based Substrate node, ready for hacking ☁️..
+<div align="Center">
+<h1> Chocolate Parachain</h1>
+<h2> Decentralized Blockchain Verification Platform </h2>
+Ending scam & spam in crypto once and for all.  
+<br>
+Built on Substrate.
 
-This project is originally a fork of the
-[Substrate Node Template](https://github.com/substrate-developer-hub/substrate-node-template)
-modified to include dependencies required for registering this node as a **parathread** or
-**parachain** to a **relay chain**.
+<br>  
+<br>
 
-The stand-alone version of this template is hosted on the
-[Substrate Devhub Parachain Template](https://github.com/substrate-developer-hub/substrate-parachain-template/)
-for each release of Polkadot. It is generated directly to the upstream
-[Parachain Template in Cumulus](https://github.com/paritytech/cumulus/tree/master/parachain-template)
-at each release branch using the
-[Substrate Template Generator](https://github.com/paritytech/substrate-template-generator/).
+[![Substrate version](https://img.shields.io/badge/Substrate-3.0.0-brightgreen?logo=Parity%20Substrate)](https://substrate.dev/)
+[![Medium](https://img.shields.io/badge/Medium-Chocolate-brightgreen?logo=medium)](https://medium.com/)
 
-👉 Learn more about parachains [here](https://wiki.polkadot.network/docs/learn-parachains), and
-parathreads [here](https://wiki.polkadot.network/docs/learn-parathreads).
+</div>
+
+---
+
+# Chocolate Parachain
+
+A FRAME-based [Substrate](https://www.substrate.io/) parachain, ready for fighting back scammers :rocket:
+
+## Getting Started
+
+Follow the steps below to get started with the Chocolate Parachain, or get it up and running right from your browser
+in just a few clicks using [Gitpod](#using-gitpod) :hammer_and_wrench:
+
+### Using Gitpod
+
+You can open this repository in gitpod and wait for the next steps to be completed for you
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#/https://github.com/chocolatenetwork/chocolate-parachain)
 
 
-🧙 Learn about how to use this template and run your own parachain testnet for it in the
-[Devhub Cumulus Tutorial](https://docs.substrate.io/tutorials/v3/cumulus/start-relay/).
+### Rust Setup
+
+First, complete the [basic Rust setup instructions](./docs/rust-setup.md).
+
+### Relay setup
+
+Use the `prep-relay` script we use on gitpod
+The setup script currently assumes you have the polkadot relay binary (v0.9.24) at `~/relay/polkadot/target/release/polkadot`
+
+```bash
+# Download the polkadot binary to ~/relay/polkadot/target/release/polkadot
+mkdir -p ~/relay/polkadot/target/release
+cd ~/relay/polkadot/target/release
+VER="v0.9.24"
+wget https://github.com/paritytech/polkadot/releases/download/${VER}/polkadot && chmod +x ./polkadot
+
+# Run only the buildSpec function to avoid building an image
+bash ./scripts/prep-relay.sh buildSpec
+```
+
+### Parachain setup
+
+Use `cargo` to build the parachain in **release** mode
+
+```
+    cargo build --release
+```
+> Note, if you build in debug, you may run into an issue with slow block times
+
+```bash
+
+# If you're only running the binary, you can cleanup the target directory:
+find target/release -type f ! -name parachain-collator -exec rm {} +
+```
+
+Export the chain spec, genesis header and validation code to [ch_spec](./ch_spec)
+
+
+```bash
+bash ./scripts/prep-collator.sh exportChainSpec
+```
+
+### Testnet
+
+Start alice
+
+```bash
+bash ./scripts/start-relay.sh alice
+```
+
+Start relay bob
+
+
+```bash
+bash ./scripts/start-relay.sh alice
+```
+
+Then Start a collator
+
+
+```bash
+bash ./scripts/start-collator.sh
+```
+
+Follow the steps from [substrate-docs](https://docs.substrate.io/tutorials/connect-other-chains/connect-a-local-parachain/#reserve-a-unique-identifier) to register the parachain
+
+Note: 
+> Paraid is 2000
+> The genesis and validation code should be in [ch_spec](./ch_spec)
+### Run
+
+Use Rust's native `cargo` command to build and launch the node:
+
+```sh
+cargo run --release -- --dev --tmp
+```
+
+### Build
+
+The `cargo run` command will perform an initial build. Use the following command to build the node
+without launching it:
+
+```sh
+cargo build --release
+```
+
+### Embedded Docs
+
+Once the project has been built, the following command can be used to explore all parameters and
+subcommands:
+
+```sh
+./target/release/parachain-collator -h
+```
+
+## Run
+
+The provided `cargo run` command will launch a temporary node and its state will be discarded after
+you terminate the process. After the project has been built, there are other ways to launch the
+node.
+
+### Single-Node Development Chain
+
+This command will start the single-node development chain with persistent state:
+
+```bash
+./target/release/parachain-collator --dev
+```
+
+Purge the development chain's state:
+
+```bash
+./target/release/parachain-collator purge-chain --dev
+```
+
+Start the development chain with detailed logging:
+
+```bash
+RUST_BACKTRACE=1 ./target/release/parachain-collator -ldebug --dev
+```
+
+### Connect with Polkadot-JS Apps Front-end
+
+Once the node is running locally, you can connect it with **Polkadot-JS Apps** front-end
+to interact with your chain. [Click here](https://polkadot.js.org/apps/#/explorer?rpc=ws://localhost:9944) connecting the Apps to your local node.
+
+
+### Connect with Chocolate Demo Front-end
+
+As above once you have the node running locally, you can [open this link](https://chocolate-demo.web.app?rpc=ws%3A%2F%2F127.0.0.1%3A9944) which has the added param `?rpc=ws%3A%2F%2F127.0.0.1%3A9944` you can modify this if you have changed the default ports.
+
+### Multi-Node Local Testnet
+
+If you want to see the multi-node consensus algorithm in action, refer to
+[our Start a Private Network tutorial](https://substrate.dev/docs/en/tutorials/start-a-private-network/).
+
+## Project Structure
+
+A Substrate project such as this consists of a number of components that are spread across a few
+directories.
+
+### Node
+
+A blockchain node is an application that allows users to participate in a blockchain network.
+Substrate-based blockchain nodes expose a number of capabilities:
+
+- Networking: Substrate nodes use the [`libp2p`](https://libp2p.io/) networking stack to allow the
+  nodes in the network to communicate with one another.
+- Consensus: Blockchains must have a way to come to
+  [consensus](https://substrate.dev/docs/en/knowledgebase/advanced/consensus) on the state of the
+  network. Substrate makes it possible to supply custom consensus engines and also ships with
+  several consensus mechanisms that have been built on top of
+  [Web3 Foundation research](https://research.web3.foundation/en/latest/polkadot/NPoS/index.html).
+- RPC Server: A remote procedure call (RPC) server is used to interact with Substrate nodes.
+
+There are several files in the `node` directory - take special note of the following:
+
+- [`chain_spec.rs`](./node/src/chain_spec.rs): A
+  [chain specification](https://substrate.dev/docs/en/knowledgebase/integrate/chain-spec) is a
+  source code file that defines a Substrate chain's initial (genesis) state. Chain specifications
+  are useful for development and testing, and critical when architecting the launch of a
+  production chain. Take note of the `development_config` and `testnet_genesis` functions, which
+  are used to define the genesis state for the local development chain configuration. These
+  functions identify some
+  [well-known accounts](https://substrate.dev/docs/en/knowledgebase/integrate/subkey#well-known-keys)
+  and use them to configure the blockchain's initial state.
+- [`service.rs`](./node/src/service.rs): This file defines the node implementation. Take note of
+  the libraries that this file imports and the names of the functions it invokes. In particular,
+  there are references to consensus-related topics, such as the
+  [longest chain rule](https://substrate.dev/docs/en/knowledgebase/advanced/consensus#longest-chain-rule),
+  the [Aura](https://substrate.dev/docs/en/knowledgebase/advanced/consensus#aura) block authoring
+  mechanism and the
+  [GRANDPA](https://substrate.dev/docs/en/knowledgebase/advanced/consensus#grandpa) finality
+  gadget.
+
+After the node has been [built](#build), refer to the embedded documentation to learn more about the
+capabilities and configuration parameters that it exposes:
+
+```shell
+./target/release/parachain-collator --help
+```
+
+### Runtime
+
+In Substrate, the terms
+"[runtime](https://substrate.dev/docs/en/knowledgebase/getting-started/glossary#runtime)" and
+"[state transition function](https://substrate.dev/docs/en/knowledgebase/getting-started/glossary#stf-state-transition-function)"
+are analogous - they refer to the core logic of the blockchain that is responsible for validating
+blocks and executing the state changes they define. The Substrate project in this repository uses
+the [FRAME](https://substrate.dev/docs/en/knowledgebase/runtime/frame) framework to construct a
+blockchain runtime. FRAME allows runtime developers to declare domain-specific logic in modules
+called "pallets". At the heart of FRAME is a helpful
+[macro language](https://substrate.dev/docs/en/knowledgebase/runtime/macros) that makes it easy to
+create pallets and flexibly compose them to create blockchains that can address
+[a variety of needs](https://www.substrate.io/substrate-users/).
+
+Review the [FRAME runtime implementation](./runtime/src/lib.rs) included in this project and note
+the following:
+
+- This file configures several pallets to include in the runtime. Each pallet configuration is
+  defined by a code block that begins with `impl $PALLET_NAME::Config for Runtime`.
+- The pallets are composed into a single runtime by way of the
+  [`construct_runtime!`](https://crates.parity.io/frame_support/macro.construct_runtime.html)
+  macro, which is part of the core
+  [FRAME Support](https://substrate.dev/docs/en/knowledgebase/runtime/frame#support-library)
+  library.
+
+### Pallets
+
+The runtime in this project is constructed using many FRAME pallets that ship with the
+[core Substrate repository](https://github.com/paritytech/substrate/tree/master/frame) and a pallet that is [defined in the `pallets`](./pallets/chocolate/src/lib.rs) directory.
+
+A FRAME pallet is compromised of a number of blockchain primitives:
+
+- Storage: FRAME defines a rich set of powerful
+  [storage abstractions](https://substrate.dev/docs/en/knowledgebase/runtime/storage) that makes
+  it easy to use Substrate's efficient key-value database to manage the evolving state of a
+  blockchain.
+- Dispatchables: FRAME pallets define special types of functions that can be invoked (dispatched)
+  from outside of the runtime in order to update its state.
+- Events: Substrate uses [events](https://substrate.dev/docs/en/knowledgebase/runtime/events) to
+  notify users of important changes in the runtime.
+- Errors: When a dispatchable fails, it returns an error.
+- Config: The `Config` configuration interface is used to define the types and parameters upon
+  which a FRAME pallet depends.
+
+### primitives
+
+- This folder is customised for chocolate with modules that aren't part of runtime but shared across different pallets. It's a single primitives package that is imported as needed.
+
+<!-- Sounds good, or should we prioritise cleanness in package names? -->
