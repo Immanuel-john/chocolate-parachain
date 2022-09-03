@@ -9,27 +9,23 @@ RUN . $HOME/.cargo/env
 RUN rustup toolchain install nightly --allow-downgrade --profile minimal --component cargo
 RUN rustup target add wasm32-unknown-unknown --toolchain nightly
 # Rustup and cargo should be available
-
+# TODO: Validate bins
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+    sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
+    rm kubectl
+RUN wget https://github.com/paritytech/zombienet/releases/download/v1.2.46/zombienet-linux -O zombienet && \
+    sudo install -o root -g root -m 0755 zombienet /usr/local/bin/zombienet && \
+    rm zombienet
 # Change to machine user/group
 ARG USER=gitpod
 ARG GROUP=gitpod
 USER ${USER}:${GROUP}
 
-RUN mkdir /home/${USER}/relay
-WORKDIR /home/${USER}/relay
-# Clone the Polkadot Repository
-# Build the relay chain Node
-# Checkout the proper commit
-# Check if the help page prints to ensure the node is built correctly
-ARG BIN="polkadot"
-RUN git clone https://github.com/paritytech/polkadot.git && \
-    cd polkadot && \
-    git checkout release-v0.9.23 && \ 
-    cargo build --release && \ 
-    ./target/release/${BIN} --help && \
-    find target -type f ! -name ${BIN} -exec rm {} + 
+RUN mkdir -p /home/${USER}/relay/polkadot/target/release
+WORKDIR /home/${USER}/relay/polkadot/target/release
 
-
-
-
-
+# Download latest polkadot release
+ARG VER="v0.9.24"
+RUN wget https://github.com/paritytech/polkadot/releases/download/${VER}/polkadot && chmod +x ./polkadot
+# Ease:
+ENV POLKADOT_BIN=/home/${USER}/relay/polkadot/target/release/polkadot
