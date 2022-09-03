@@ -51,7 +51,7 @@ cd ~/relay/polkadot/target/release
 VER="v0.9.24"
 wget https://github.com/paritytech/polkadot/releases/download/${VER}/polkadot && chmod +x ./polkadot
 
-# Run only the buildSpec function to avoid building an image
+# Back in the folder you extracted this repo to, Run only the buildSpec function to avoid building an image
 bash ./scripts/prep-relay.sh buildSpec
 ```
 
