@@ -42,7 +42,8 @@ First, complete the [basic Rust setup instructions](./docs/rust-setup.md).
 ### Relay setup
 
 Use the `prep-relay` script we use on gitpod
-The setup script currently assumes you have the polkadot relay binary (v0.9.24) at `~/relay/polkadot/target/release/polkadot`
+
+> Note: The setup script currently assumes you have the polkadot relay binary (v0.9.24) at `~/relay/polkadot/target/release/polkadot`
 
 ```bash
 # Download the polkadot binary to ~/relay/polkadot/target/release/polkadot
@@ -62,7 +63,7 @@ Use `cargo` to build the parachain in **release** mode
 ```
     cargo build --release
 ```
-> Note, if you build in debug, you may run into an issue with slow block times
+> Note, if you build the debug target using `cargo build`, you may run into an issue with slow block times
 
 ```bash
 
@@ -101,9 +102,9 @@ bash ./scripts/start-collator.sh
 
 Follow the steps from [substrate-docs](https://docs.substrate.io/tutorials/connect-other-chains/connect-a-local-parachain/#reserve-a-unique-identifier) to register the parachain
 
-Note: 
-> Paraid is 2000
-> The genesis and validation code should be in [ch_spec](./ch_spec)
+ 
+> Note: Your Paraid is 2000, and The genesis header and validation code should be in [ch_spec](./ch_spec)
+
 ### Run
 
 Use Rust's native `cargo` command to build and launch the node:
