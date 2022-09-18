@@ -2,19 +2,15 @@ image:
   file: .github/dockerfiles/Dockerfile.gitpod-base
   context: .
 tasks:
-  - name: Collator
-    init: bash ./scripts/prep-collator.sh main && gp sync-await relay
-    command: bash ./scripts/start-collator.sh
-  - name: Relay Alice 
+  - name: Prep Collator
+    init: bash ./scripts/prep-collator.sh main
+    # Todo: Tail logs
+  - name: Prep relay 
     init: bash ./scripts/prep-relay.sh main
-    command: bash ./scripts/start-relay.sh alice
-  - name: Relay Bob
-    # Wait for alice
-    init: gp sync-await relay
-    command: bash ./scripts/start-relay.sh bob
-  # - name: Test Net
-  #   init:  gp sync-await collator && gp sync-await relay 
-  #   command: zombienet spawn zombienet/config.toml -p native
+    # Todo: Tail logs
+  - name: Test Net
+    init:  gp sync-await collator && gp sync-await relay 
+    command: zombienet spawn zombienet/config.toml -p native
 
 github:
   prebuilds:

@@ -19,5 +19,5 @@ cumulus_based = true
   [parachains.collator]
   name = "collator01"
   image = "chocnet/parachain-collator:latest"
-  command = "./target/release/parachain-collator"
+  command = "./bins/parachain-collator"
   args = ["-lparachain=debug"]
