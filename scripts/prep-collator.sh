@@ -4,6 +4,7 @@
 function prepBins {
     cargo build --release
     find target/release -type f ! -name parachain-collator -exec rm {} +
+    ln -s $(pwd)/target/release/parachain-collator $(pwd)/bins/parachain-collator
 
     docker build --pull --rm -f ".github/dockerfiles/Dockerfile.collator" -t chocnet/parachain-collator "."
 }

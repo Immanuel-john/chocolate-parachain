@@ -13,7 +13,7 @@ RUN rustup target add wasm32-unknown-unknown --toolchain nightly
 RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
     sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
     rm kubectl
-RUN wget https://github.com/paritytech/zombienet/releases/download/v1.2.46/zombienet-linux -O zombienet && \
+RUN wget https://github.com/paritytech/zombienet/releases/download/v1.2.66/zombienet-linux -O zombienet && \
     sudo install -o root -g root -m 0755 zombienet /usr/local/bin/zombienet && \
     rm zombienet
 # Change to machine user/group
@@ -25,7 +25,7 @@ RUN mkdir -p /home/${USER}/relay/polkadot/target/release
 WORKDIR /home/${USER}/relay/polkadot/target/release
 
 # Download latest polkadot release
-ARG VER="v0.9.24"
+ARG VER="v0.9.28"
 RUN wget https://github.com/paritytech/polkadot/releases/download/${VER}/polkadot && chmod +x ./polkadot
 # Ease:
 ENV POLKADOT_BIN=/home/${USER}/relay/polkadot/target/release/polkadot
