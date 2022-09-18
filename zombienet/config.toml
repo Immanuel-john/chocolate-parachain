@@ -3,7 +3,7 @@ timeout = 1000
 
 [relaychain]
 default_image = "chocnet/polkadot-debug:latest"
-default_command = "/home/gitpod/relay/polkadot/target/release/polkadot"
+default_command = "./bins/polkadot"
 chain = "rococo-local"
 
   [[relaychain.nodes]]
@@ -19,5 +19,5 @@ cumulus_based = true
   [parachains.collator]
   name = "collator01"
   image = "chocnet/parachain-collator:latest"
-  command = "./target/debug/parachain-collator"
+  command = "./target/release/parachain-collator"
   args = ["-lparachain=debug"]
