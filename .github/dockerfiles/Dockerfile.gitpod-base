@@ -25,7 +25,7 @@ RUN mkdir -p /home/${USER}/relay/polkadot/target/release
 WORKDIR /home/${USER}/relay/polkadot/target/release
 
 # Download latest polkadot release
-ARG VER="v0.9.24"
+ARG VER="v0.9.28"
 RUN wget https://github.com/paritytech/polkadot/releases/download/${VER}/polkadot && chmod +x ./polkadot
 # Ease:
 ENV POLKADOT_BIN=/home/${USER}/relay/polkadot/target/release/polkadot
