@@ -11,7 +11,7 @@ pub mod xcm_config;
 
 /// Asset config options. As used on litentry. Will Revisit for xcm
 pub mod asset_config;
-
+use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use asset_config::DustRemovalWhitelist;
 use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
@@ -32,7 +32,7 @@ use static_assertions::const_assert;
 
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{EnsureOneOf, Everything, Get, LockIdentifier},
+	traits::{EitherOfDiverse, Everything, Get, LockIdentifier},
 	weights::{
 		constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
 		WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
@@ -312,7 +312,7 @@ parameter_types! {
 	pub const SS58Prefix: u16 = 42;
 }
 
-type MoreThanHalfCouncil = EnsureOneOf<
+type MoreThanHalfCouncil = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	pallet_collective::EnsureProportionMoreThan<AccountId, CouncilCollective, 1, 2>,
 >;
@@ -419,6 +419,7 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
+	type Event = Event;
 	type OnChargeTransaction =
 		pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
 	type WeightToFee = WeightToFee;
@@ -441,6 +442,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type OutboundXcmpMessageSource = XcmpQueue;
 	type XcmpMessageHandler = XcmpQueue;
 	type ReservedXcmpWeight = ReservedXcmpWeight;
+	type CheckAssociatedRelayNumber = RelayNumberStrictlyIncreases;
 }
 
 impl parachain_info::Config for Runtime {}
@@ -610,6 +612,8 @@ parameter_types! {
 	pub const TermDuration: BlockNumber = 7 * DAYS;
 	pub const DesiredMembers: u32 = 13;
 	pub const DesiredRunnersUp: u32 = 7;
+	pub const MaxVoters: u32 = 10 * 1000; // 10* MAX_CANDIDATES, make sure this is updated if MAX_CANDIDATES is updated.
+	// pub const MaxCandidates: u32 = 1000; Max Candidates is predefined by pallet_collator_selection config
 	pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
 }
 
@@ -633,6 +637,8 @@ impl pallet_elections_phragmen::Config for Runtime {
 	type DesiredMembers = DesiredMembers;
 	type DesiredRunnersUp = DesiredRunnersUp;
 	type TermDuration = TermDuration;
+	type MaxVoters = MaxVoters;
+	type MaxCandidates = MaxCandidates;
 	type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
 }
 
@@ -657,7 +663,7 @@ parameter_types! {
 	pub const MaxApprovals: u32 = 100;
 }
 
-type ApproveOrigin = EnsureOneOf<
+type ApproveOrigin = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 5>,
 >;
@@ -678,6 +684,7 @@ impl pallet_treasury::Config for Runtime {
 	type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
 	type SpendFunds = ();
 	type MaxApprovals = MaxApprovals;
+	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<u128>;
 }
 
 impl pallet_minting::Config for Runtime {
@@ -704,7 +711,7 @@ construct_runtime!(
 
 		// Monetary stuff.
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 11,
+		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 11,
 
 		// Collator support. The order of these 4 are important and shall not change.
 		Authorship: pallet_authorship::{Pallet, Call, Storage} = 20,

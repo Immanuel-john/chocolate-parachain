@@ -16,4 +16,6 @@
 .DS_Store
 .idea
 .vscode
+
 /ch_spec
+/bins

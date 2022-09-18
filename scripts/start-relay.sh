@@ -5,7 +5,7 @@ echo "Start Alice command"
 echo "bash ./scripts/start-relay.sh alice"
 echo ""
 
-RELAY_BIN=~/relay/polkadot/target/release/polkadot
+RELAY_BIN=./bins/polkadot
 ROCOCO_LOCAL=ch_spec/rococo-local.json
 ROCOCO_LOCAL_RAW=ch_spec/rococo-local-raw.json
 
