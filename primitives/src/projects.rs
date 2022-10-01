@@ -91,7 +91,7 @@ where
 /// Default status - storage req
 impl Default for Status {
 	fn default() -> Self {
-		Status::Accepted
+		Status::Proposed
 	}
 }
 /// Default reason - storage req
