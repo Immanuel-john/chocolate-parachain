@@ -37,19 +37,19 @@ You can open this repository in gitpod and wait for the next steps to be complet
 
 ### Rust Setup
 
-First, complete the [basic Rust setup instructions](./docs/rust-setup.md).
+Complete the [basic Rust setup instructions](./docs/rust-setup.md).
 
 ### Relay setup
 
 Use the `prep-relay` script we use on gitpod
 
-> Note: The setup script currently assumes you have the polkadot relay binary (v0.9.24) at `~/relay/polkadot/target/release/polkadot`
+> Note: The setup script currently assumes you have the set the `POLKADOT_BIN` environment variable with full path to polkadot relay binary (v0.9.28)
 
 ```bash
-# Download the polkadot binary to ~/relay/polkadot/target/release/polkadot
-mkdir -p ~/relay/polkadot/target/release
-cd ~/relay/polkadot/target/release
-VER="v0.9.24"
+# Download the polkadot binary to ./bins/polkadot eg
+mkdir bins
+cd bins
+VER="v0.9.28"
 wget https://github.com/paritytech/polkadot/releases/download/${VER}/polkadot && chmod +x ./polkadot
 
 # Back in the folder you extracted this repo to, Run only the buildSpec function to avoid building an image
@@ -66,9 +66,14 @@ Use `cargo` to build the parachain in **release** mode
 > Note, if you build the debug target using `cargo build`, you may run into an issue with slow block times
 
 ```bash
-
 # If you're only running the binary, you can cleanup the target directory:
 find target/release -type f ! -name parachain-collator -exec rm {} +
+```
+
+Mirror development binary in bins directory.
+
+```bash
+ln -s $(pwd)/target/release/parachain-collator $(pwd)/bins/parachain-collator
 ```
 
 Export the chain spec, genesis header and validation code to [ch_spec](./ch_spec)
@@ -78,7 +83,16 @@ Export the chain spec, genesis header and validation code to [ch_spec](./ch_spec
 bash ./scripts/prep-collator.sh exportChainSpec
 ```
 
-### Testnet
+### Zombienet Testnet
+
+Start a two-validator test net
+```
+zombienet spawn zombienet/config.toml -p native
+```
+
+> Note: This assumes you have the polkadot and parachain-collator binaries in the `bins` directory.
+
+### Manual Testnet
 
 Start alice
 
