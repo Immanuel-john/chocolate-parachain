@@ -241,7 +241,6 @@ fn testnet_genesis(
 				let ps_req = Reason::PassedRequirements;
 				vec![
 					(Status::Accepted, ps_req.clone()),
-					(Status::Rejected, Reason::Malicious),
 					(Status::Accepted, ps_req.clone()),
 					(Status::Accepted, ps_req.clone()),
 					(Status::Proposed, ps_req.clone()),

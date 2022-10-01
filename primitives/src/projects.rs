@@ -48,8 +48,6 @@ pub enum Status {
 	Proposed,
 	/// Proposal accepted
 	Accepted,
-	/// Proposal rejected
-	Rejected,
 }
 /// Reason for the current status - Required for rejected proposal.
 #[derive(
@@ -93,7 +91,7 @@ where
 /// Default status - storage req
 impl Default for Status {
 	fn default() -> Self {
-		Status::Proposed
+		Status::Accepted
 	}
 }
 /// Default reason - storage req
