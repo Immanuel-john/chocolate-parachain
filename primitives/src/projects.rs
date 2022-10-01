@@ -48,8 +48,6 @@ pub enum Status {
 	Proposed,
 	/// Proposal accepted
 	Accepted,
-	/// Proposal rejected
-	Rejected,
 }
 /// Reason for the current status - Required for rejected proposal.
 #[derive(

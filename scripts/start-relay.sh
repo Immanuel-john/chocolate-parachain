@@ -10,7 +10,7 @@ ROCOCO_LOCAL=ch_spec/rococo-local.json
 ROCOCO_LOCAL_RAW=ch_spec/rococo-local-raw.json
 
 function alice {
-    $RELAY_BIN --alice --validator --base-path /tmp/relay/alice --chain $ROCOCO_LOCAL_RAW --port 30333 --ws-port 9944
+    $RELAY_BIN --alice --validator --base-path /tmp/relay/alice --chain $ROCOCO_LOCAL_RAW --port 30333 --ws-port 9944 --rpc-cors all
 }
 echo "Start Bob command"
 echo "bash ./scripts/start-relay.sh bob"
@@ -25,6 +25,7 @@ function bob {
     --chain $ROCOCO_LOCAL_RAW \
     --port 30334 \
     --ws-port 9945 \
+    --rpc-cors all
     #  Mdns works
 }
 
