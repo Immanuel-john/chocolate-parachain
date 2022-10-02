@@ -105,8 +105,6 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
-		/// parameters. [something, who]
-		SomethingStored(u32, T::AccountId),
 		/// parameters. [owner, cid, project_id]
 		ProjectCreated(T::AccountId, BoundedVec<u8, T::StringLimit>, ProjectID),
 		/// parameters. [owner, project_id]
